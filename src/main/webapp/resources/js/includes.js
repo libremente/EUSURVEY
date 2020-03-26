@@ -697,28 +697,30 @@ function initModals(item)
 	}
 	
 	function checkNoBreaks()
-	{					
-		$(".nobreak").each(function(){
-			if ($(this).attr("data-text")) {
-				$(this).text($(this).attr("data-text"));
-				//$(this).removeAttr("data-text");
-			}
-		});
+	{	
+		if(!$("#results-table").hasClass("hidden")) {
+			$(".nobreak").each(function(){
+				if ($(this).attr("data-text")) {
+					$(this).text($(this).attr("data-text"));
+					//$(this).removeAttr("data-text");
+				}
+			});
+					
+			$(".nobreak").each(function(){
+				var text = $(this).text();
 				
-		$(".nobreak").each(function(){
-			var text = $(this).text();
-			
-			if ($(this).parent().height() > 30)
-			{
-				$(this).attr("data-text",text);
-			}
-			
-			while ($(this).parent().height() > 30  || ($(this).closest("div").width() - $(this).width() < 70))
-			{
-				text = text.substring(0, text.length - 2);
-				$(this).text(text + "...");	
-			}
-		});
+				if ($(this).parent().height() > 30)
+				{
+					$(this).attr("data-text",text);
+				}
+				
+				while ($(this).parent().height() > 30  || ($(this).closest("div").width() - $(this).width() < 70))
+				{
+					text = text.substring(0, text.length - 2);
+					$(this).text(text + "...");	
+				}
+			});
+		}
 	}
 	
 	function clearFilterCellContent(link)
@@ -2065,7 +2067,14 @@ function initModals(item)
 			$("#create-survey-opc").val("true");
 		} else {
 			$("#create-survey-opc").val("false");
-		}		
+		}
+		
+		if ($("#new-survey-type-ecf:checked").length > 0)
+		{
+			$("#create-survey-ecf").val("true");
+		} else {
+			$("#create-survey-ecf").val("false");
+		}
 		
 		$("#create-survey-contact").val($("#new-survey-contact").val());
 		$("#create-survey-contact-label").val($("#new-survey-contact-label").val());

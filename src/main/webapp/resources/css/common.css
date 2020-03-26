@@ -1483,7 +1483,7 @@ legend {
 	max-width: none; 
 	width: auto; 
 	margin-left: auto; 
-	margin-right: auto;"
+	margin-right: auto;
 }
 
 #contentstable .headertitle {
@@ -1566,7 +1566,7 @@ a.draftLink
 {
 	margin-right:55px;
 }
-}
+
 
 .captchawarning {
 	color: #f00;
@@ -1975,4 +1975,11 @@ input[type="radio"][disabled], input[type="checkbox"][disabled], input[type="rad
 .filtertools {
 	text-align: right;
 	margin-top: 9px;
+}
+
+#canvasContainer {
+	display: block;
+	max-width: 600px;
+	max-height: 600px;
+	margin: auto;
 }

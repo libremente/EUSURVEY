@@ -4,11 +4,14 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -28,15 +31,6 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.persistence.Transient;
 
-import com.ec.survey.model.Language;
-import com.ec.survey.model.Publication;
-import com.ec.survey.model.Skin;
-import com.ec.survey.model.administration.User;
-import com.ec.survey.model.survey.base.File;
-import com.ec.survey.service.SurveyService;
-import com.ec.survey.tools.ConversionTools;
-import com.ec.survey.tools.Tools;
-
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.Fetch;
@@ -45,6 +39,16 @@ import org.owasp.esapi.errors.IntrusionException;
 import org.owasp.esapi.errors.ValidationException;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.format.annotation.DateTimeFormat;
+
+import com.ec.survey.model.ECFProfile;
+import com.ec.survey.model.Language;
+import com.ec.survey.model.Publication;
+import com.ec.survey.model.Skin;
+import com.ec.survey.model.administration.User;
+import com.ec.survey.model.survey.base.File;
+import com.ec.survey.service.SurveyService;
+import com.ec.survey.tools.ConversionTools;
+import com.ec.survey.tools.Tools;
 
 /**
  * This class represents a survey. It contains a list of elements that represent
@@ -158,6 +162,7 @@ public class Survey implements java.io.Serializable {
 	private Boolean logoInInfo;
 	private Boolean isQuiz;
 	private Boolean isOPC;
+	private Boolean isECF;
 	private Boolean showQuizIcons;
 	private Boolean showTotalScore;
 	private Boolean scoresByQuestion;
@@ -369,8 +374,7 @@ public class Survey implements java.io.Serializable {
 	}
 
 	@Transient
-	public String getNiceFirstPublished()
-	{
+	public String getNiceFirstPublished() {
 		return firstPublished != null ? Tools.formatDate(firstPublished, ConversionTools.DateFormat) : "";
 	}
 
@@ -1278,6 +1282,35 @@ public class Survey implements java.io.Serializable {
 		this.isOPC = isOPC != null ? isOPC : false;
 	}
 
+	@Column(name = "ECF")
+	public Boolean getIsECF() {
+		return isECF != null ? isECF : false;
+	}
+
+	public void setIsECF(Boolean isECF) {
+		this.isECF = isECF != null ? isECF : false;
+	}
+
+	@Transient
+	public Set<ECFProfile> getEcfProfiles() {
+		if (this.getIsECF()) {
+			Set<Element> questionSet = this.getElements().stream()
+					.filter(element -> element instanceof SingleChoiceQuestion).collect(Collectors.toSet());
+			for (Element questionElement : questionSet) {
+				SingleChoiceQuestion question = (SingleChoiceQuestion) questionElement;
+
+				if (!question.getPossibleAnswers().isEmpty()
+						&& question.getPossibleAnswers().get(0).getEcfProfile() != null) {
+					List<PossibleAnswer> possibleAnswers = question.getPossibleAnswers();
+					return possibleAnswers.stream().map(possibleAnswer -> {
+						return possibleAnswer.getEcfProfile();
+					}).collect(Collectors.toSet());
+				}
+			}
+		}
+		return new HashSet<>();
+	}
+
 	@Column(name = "SHOWSCORE")
 	public Boolean getShowTotalScore() {
 		return showTotalScore != null ? showTotalScore : true;
@@ -1491,6 +1524,7 @@ public class Survey implements java.io.Serializable {
 		copy.showPDFOnUnavailabilityPage = showPDFOnUnavailabilityPage;
 		copy.showDocsOnUnavailabilityPage = showDocsOnUnavailabilityPage;
 		copy.isOPC = isOPC;
+		copy.isECF = isECF;
 		copy.setAllowedContributionsPerUser(allowedContributionsPerUser);
 		copy.setIsUseMaxNumberContribution(isUseMaxNumberContribution);
 		copy.setIsUseMaxNumberContributionLink(isUseMaxNumberContributionLink);
@@ -1573,20 +1607,24 @@ public class Survey implements java.io.Serializable {
 			}
 		}
 
+		// if (copy.isECF) {
+		// 	copy = surveyService.ecfCopy(copy);
+		// }
+
 		return copy;
 	}
 
 	@Transient
-	public Map<Integer, Element> copyElements(Survey copy, SurveyService surveyService, boolean makeQuestionsLocked)
-			throws IntrusionException, ValidationException {
-		for (Element element : elements) {
-			Element c = element.copy(surveyService.getFileDir());
-			c.setLocked(makeQuestionsLocked);
-			copy.elements.add(c);
+	public Map<Integer, Element> copyElements(Survey surveyCopy, SurveyService surveyService,
+			boolean makeQuestionsLocked) throws IntrusionException, ValidationException {
+		for (Element element : this.elements) {
+			Element copiedElements = element.copy(surveyService.getFileDir());
+			copiedElements.setLocked(makeQuestionsLocked);
+			surveyCopy.elements.add(copiedElements);
 		}
 
 		Map<Integer, Element> elementsBySourceId = new HashMap<>();
-		for (Element newElement : copy.elements) {
+		for (Element newElement : surveyCopy.elements) {
 			elementsBySourceId.put(newElement.getSourceId(), newElement);
 			if (newElement instanceof ChoiceQuestion) {
 				for (PossibleAnswer answer : ((ChoiceQuestion) newElement).getPossibleAnswers()) {

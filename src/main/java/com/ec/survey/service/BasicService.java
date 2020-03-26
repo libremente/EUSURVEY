@@ -77,6 +77,9 @@ public class BasicService implements BeanFactoryAware {
 		
 	@Resource(name = "reportingService")
 	protected ReportingService reportingService;
+
+	@Resource(name = "ecfService")
+	protected ECFService ecfService;
 	
 	@Autowired
 	protected MessageSource resources;

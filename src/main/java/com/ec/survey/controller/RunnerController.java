@@ -635,6 +635,10 @@ public class RunnerController extends BasicController {
 			
 			ModelAndView result = new ModelAndView("thanks", "uniqueCode", answerSet.getUniqueCode());
 			
+			if (survey.getIsECF()) {
+				result.addObject("ecfResults","example");
+			}
+
 			if (survey.getIsOPC())
 			{
 				result.addObject("opcredirection", survey.getFinalConfirmationLink(opcredirect, lang));
@@ -890,7 +894,7 @@ public class RunnerController extends BasicController {
 				
 				String uniqueCode = (String) request.getSession().getAttribute("uniqueCode");
 
-				if (uniqueCode == null || !validCodesService.CheckValid(uniqueCode, survey.getUniqueId())) {
+				if (uniqueCode == null || !validCodesService.checkValid(uniqueCode, survey.getUniqueId())) {
 					modelReturn.setViewName("runner/surveyLogin");
 					modelReturn.addObject("shortname", uidorshortname);
 					modelReturn.addObject("surveyname", survey.cleanTitle());
@@ -1631,28 +1635,28 @@ public class RunnerController extends BasicController {
 				return getMaxAnswersReachedPageModel(lastestPublishedSurvey, request, device);
 			}
 			
-			Survey origsurvey = surveyService.getSurvey(Integer.parseInt(request.getParameter("survey.id")), false, true);
+			Survey answeredSurvey = surveyService.getSurvey(Integer.parseInt(request.getParameter("survey.id")), false, true);
 			String uniqueCode = request.getParameter("uniqueCode");
 
-			if (origsurvey.getSecurity().startsWith("secured")) {
-				if (!validCodesService.CheckValid(uniqueCode, origsurvey.getUniqueId())) {
+			if (answeredSurvey.getSecurity().startsWith("secured")) {
+				if (!validCodesService.checkValid(uniqueCode, answeredSurvey.getUniqueId())) {
 					ModelAndView model = new ModelAndView("error/generic");
 					model.addObject("message", resources.getMessage("error.NoInvitation", null, "You are not authorized to submit to this survey without a proper invitation.", locale));
 					return model;
 				}
-			} else{
+			} else {
 				//check if uniqueCode is valid
 				if (!Tools.validUniqueCode(uniqueCode)) {
 					return new ModelAndView("redirect:/errors/500.html");
 				}
 			}			
 
-			if (SurveyHelper.isDeactivatedOrEndDateExceeded(origsurvey, surveyService)) {
-				return getEscapePageModel(origsurvey, request, device);
+			if (SurveyHelper.isDeactivatedOrEndDateExceeded(answeredSurvey, surveyService)) {
+				return getEscapePageModel(answeredSurvey, request, device);
 			}
 
-			if (SurveyHelper.isMaxContributionReached(origsurvey, answerService)) {
-				return getMaxAnswersReachedPageModel(origsurvey, request, device);
+			if (SurveyHelper.isMaxContributionReached(answeredSurvey, answerService)) {
+				return getMaxAnswersReachedPageModel(answeredSurvey, request, device);
 			}
 
 			String lang = locale.getLanguage();
@@ -1660,11 +1664,11 @@ public class RunnerController extends BasicController {
 				lang = request.getParameter("language.code");
 			}
 
-			ModelAndView err = testDraftAlreadySubmittedByUniqueCode(origsurvey, uniqueCode, locale);
+			ModelAndView err = testDraftAlreadySubmittedByUniqueCode(answeredSurvey, uniqueCode, locale);
 			if (err != null) return err;
 
-			User user = sessionService.getCurrentUser(request, false, false);
-			AnswerSet answerSet = SurveyHelper.parseAnswerSet(request, origsurvey, fileDir, uniqueCode, false, lang, user, fileService);
+			User answererUser = sessionService.getCurrentUser(request, false, false);
+			AnswerSet answerSet = SurveyHelper.parseAnswerSet(request, answeredSurvey, fileDir, uniqueCode, false, lang, answererUser, fileService);
 			
 			String newlang = request.getParameter("newlang");
 			String newlangpost = request.getParameter("newlangpost");
@@ -1672,12 +1676,12 @@ public class RunnerController extends BasicController {
 			String newviewpost = request.getParameter("newviewpost");
 			
 			Set<String> invisibleElements = new HashSet<>();
-			HashMap<Element, String> validation = SurveyHelper.validateAnswerSet(answerSet, answerService, invisibleElements, resources, locale, request.getParameter("draftid"), request, false, user, fileService);
+			HashMap<Element, String> validation = SurveyHelper.validateAnswerSet(answerSet, answerService, invisibleElements, resources, locale, request.getParameter("draftid"), request, false, answererUser, fileService);
 			
 			if (newlangpost != null && newlangpost.equalsIgnoreCase("true"))
 			{
-				Survey survey = origsurvey;
-				survey = surveyService.getSurvey(origsurvey.getId(), newlang);
+				Survey survey = answeredSurvey;
+				survey = surveyService.getSurvey(answeredSurvey.getId(), newlang);
 				Form f = new Form(survey, translationService.getActiveTranslationsForSurvey(survey.getId()), survey.getLanguage(), resources, contextpath);
 				f.getAnswerSets().add(answerSet);
 				f.setWcagCompliance(answerSet.getWcagMode() != null && answerSet.getWcagMode());				
@@ -1691,7 +1695,7 @@ public class RunnerController extends BasicController {
 				
 				return model;
 			} else if (newviewpost != null && newviewpost.equalsIgnoreCase("true")) {
-				Survey survey = origsurvey;
+				Survey survey = answeredSurvey;
 				survey = surveyService.getSurvey(survey.getId(), newlang);
 				Form f = new Form(survey, translationService.getActiveTranslationsForSurvey(survey.getId()), survey.getLanguage(), resources, contextpath);
 				f.getAnswerSets().add(answerSet);				
@@ -1711,25 +1715,25 @@ public class RunnerController extends BasicController {
 				return model;
 			}
 			
-			if (origsurvey.getEcasSecurity() && request.getParameter("passwordauthenticated") == null)
+			if (answeredSurvey.getEcasSecurity() && request.getParameter("passwordauthenticated") == null)
 			{
-				if (user != null)
+				if (answererUser != null)
 				{
-					answerSet.setResponderEmail(user.getEmail());
+					answerSet.setResponderEmail(answererUser.getEmail());
 					
-					if (user.getType().equalsIgnoreCase(User.ECAS))
+					if (answererUser.getType().equalsIgnoreCase(User.ECAS))
 					{
 						//if the user already submitted, show error page
-						int contributionsCount = answerService.userContributionsToSurvey(origsurvey, user);
+						int contributionsCount = answerService.userContributionsToSurvey(answeredSurvey, answererUser);
 						if (contributionsCount > 0)
 						{
-							if (origsurvey.getAllowedContributionsPerUser() == 1 || origsurvey.getAllowedContributionsPerUser() <= contributionsCount)
+							if (answeredSurvey.getAllowedContributionsPerUser() == 1 || answeredSurvey.getAllowedContributionsPerUser() <= contributionsCount)
 							{								
 								request.getSession().removeAttribute("ECASSURVEY");
 								ModelAndView modelReturn = new ModelAndView("error/generic");
 								modelReturn.addObject("runnermode", true);
 								
-								if (origsurvey.getAllowedContributionsPerUser() == 1)
+								if (answeredSurvey.getAllowedContributionsPerUser() == 1)
 								{
 									modelReturn.addObject("message", resources.getMessage("error.UserAlreadySubmitted", null, "This account has already been used to submit a contribution. Multiple submission is prohibited.", locale));
 								} else {
@@ -1744,20 +1748,20 @@ public class RunnerController extends BasicController {
 			}
 			
 			if (validation.size() > 0) {
-				Survey survey = origsurvey;
+				Survey survey = answeredSurvey;
 				if (request.getParameter("language.code") != null && request.getParameter("language.code").length() == 2) {
-					survey = surveyService.getSurvey(origsurvey.getId(), lang);
+					survey = surveyService.getSurvey(answeredSurvey.getId(), lang);
 				}
-				Form f = new Form(survey, translationService.getActiveTranslationsForSurvey(survey.getId()), survey.getLanguage(), resources, contextpath);
-				f.getAnswerSets().add(answerSet);
-				f.setWcagCompliance(answerSet.getWcagMode() != null && answerSet.getWcagMode());				
-				f.setValidation(validation);
+				Form form = new Form(survey, translationService.getActiveTranslationsForSurvey(survey.getId()), survey.getLanguage(), resources, contextpath);
+				form.getAnswerSets().add(answerSet);
+				form.setWcagCompliance(answerSet.getWcagMode() != null && answerSet.getWcagMode());				
+				form.setValidation(validation);
 				
 				//recreate uploaded files
 				SurveyHelper.recreateUploadedFiles(answerSet, fileDir, survey, fileService);
 				
-				ModelAndView model = new ModelAndView("runner/runner", "form", f);
-				surveyService.initializeSkin(f.getSurvey());
+				ModelAndView model = new ModelAndView("runner/runner", "form", form);
+				surveyService.initializeSkin(form.getSurvey());
 				model.addObject("submit", true);
 				model.addObject("runnermode", true);
 				model.addObject("uniqueCode", uniqueCode);
@@ -1768,9 +1772,9 @@ public class RunnerController extends BasicController {
 
 			if (answerSet.getSurvey().getCaptcha()) {
 				if (!checkCaptcha(request)) {
-					Survey survey = origsurvey;
+					Survey survey = answeredSurvey;
 					if (request.getParameter("language.code") != null && request.getParameter("language.code").length() == 2) {
-						survey = surveyService.getSurvey(origsurvey.getId(), lang);
+						survey = surveyService.getSurvey(answeredSurvey.getId(), lang);
 					}
 					Form f = new Form(survey, translationService.getActiveTranslationsForSurvey(survey.getId()), survey.getLanguage(), resources, contextpath);
 					f.getAnswerSets().add(answerSet);
@@ -1787,9 +1791,9 @@ public class RunnerController extends BasicController {
 			try {
 				saveAnswerSet(answerSet, fileDir, request.getParameter("draftid"), -1);
 			} catch (InvalidEmailException ie) {
-				Survey survey = origsurvey;
+				Survey survey = answeredSurvey;
 				if (request.getParameter("language.code") != null && request.getParameter("language.code").length() == 2) {
-					survey = surveyService.getSurvey(origsurvey.getId(), lang);
+					survey = surveyService.getSurvey(answeredSurvey.getId(), lang);
 				}
 				Form f = new Form(survey, translationService.getActiveTranslationsForSurvey(survey.getId()), survey.getLanguage(), resources, contextpath);
 				f.getAnswerSets().add(answerSet);
@@ -1804,9 +1808,9 @@ public class RunnerController extends BasicController {
 				
 				return model;
 			} catch (LoginAlreadyExistsException le) {
-				Survey survey = origsurvey;
+				Survey survey = answeredSurvey;
 				if (request.getParameter("language.code") != null && request.getParameter("language.code").length() == 2) {
-					survey = surveyService.getSurvey(origsurvey.getId(), lang);
+					survey = surveyService.getSurvey(answeredSurvey.getId(), lang);
 				}
 				Form f = new Form(survey, translationService.getActiveTranslationsForSurvey(survey.getId()), survey.getLanguage(), resources, contextpath);
 				f.getAnswerSets().add(answerSet);
@@ -1827,9 +1831,9 @@ public class RunnerController extends BasicController {
 
 			if (hibernateOptimisticLockingFailureExceptionCatched)
 			{
-				Survey survey = origsurvey;
+				Survey survey = answeredSurvey;
 				if (request.getParameter("language.code") != null && request.getParameter("language.code").length() == 2) {
-					survey = surveyService.getSurvey(origsurvey.getId(), lang);
+					survey = surveyService.getSurvey(answeredSurvey.getId(), lang);
 				}
 				Form f = new Form(survey, translationService.getActiveTranslationsForSurvey(survey.getId()), survey.getLanguage(), resources, contextpath);
 				f.getAnswerSets().add(answerSet);
@@ -1845,8 +1849,8 @@ public class RunnerController extends BasicController {
 
 			validCodesService.invalidate(uniqueCode);
 			
-			if (origsurvey.getSecurity().startsWith("secured")) {				
-				if (origsurvey.getEcasSecurity() && origsurvey.getConfirmationPageLink())
+			if (answeredSurvey.getSecurity().startsWith("secured")) {				
+				if (answeredSurvey.getEcasSecurity() && answeredSurvey.getConfirmationPageLink())
 				{
 					request.getSession().invalidate();
 				}
@@ -1855,13 +1859,13 @@ public class RunnerController extends BasicController {
 			if (answerSet.getSurvey().getShortname().equalsIgnoreCase("NewSelfRegistrationSurvey")) {
 				ModelAndView result = new ModelAndView("thanksregister", "uniqueCode", answerSet.getUniqueCode());
 				result.addObject("runnermode", true);
-				result.addObject("surveyprefix", origsurvey.getId() + "." + uniqueCode);
+				result.addObject("surveyprefix", answeredSurvey.getId() + "." + uniqueCode);
 				return result;
 			}
 
-			Survey survey = origsurvey;
+			Survey survey = answeredSurvey;
 			if (request.getParameter("language.code") != null && request.getParameter("language.code").length() == 2) {
-				survey = surveyService.getSurvey(origsurvey.getId(), lang);
+				survey = surveyService.getSurvey(answeredSurvey.getId(), lang);
 			}
 			
 			if (survey.getIsQuiz())
@@ -1888,6 +1892,13 @@ public class RunnerController extends BasicController {
 			if (!survey.isAnonymous() && answerSet.getResponderEmail() != null)
 			{
 				result.addObject("participantsemail", answerSet.getResponderEmail());
+			}
+
+			if (survey.getIsECF()) {
+				// compute results
+				result.addObject("ecfResults", "example");
+				result.addObject("contextpath", contextpath);
+				result.addObject("surveyShortname", survey.getShortname());
 			}
 
 			result.addObject("isthankspage",true);

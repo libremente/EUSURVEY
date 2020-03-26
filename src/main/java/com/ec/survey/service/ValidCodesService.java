@@ -45,7 +45,7 @@ public class ValidCodesService extends BasicService {
 	}
 
 	@Transactional(readOnly = true)
-	public boolean CheckValid(String uniqueCode, String surveyUid) {
+	public boolean checkValid(String uniqueCode, String surveyUid) {
 		Session session = sessionFactory.getCurrentSession();
 		Calendar cal = Calendar.getInstance();
 		cal.add(Calendar.DATE, -1);

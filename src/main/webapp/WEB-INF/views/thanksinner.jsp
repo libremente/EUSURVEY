@@ -13,7 +13,27 @@
 			<spring:message code="label.Thanks" />
 		</c:otherwise>
 	</c:choose>
-	
+
+	<c:if test="${ecfResults != null}">
+		<br />
+		<br />
+		<p>Here are your results:</p>
+		<div id="canvasContainer">
+			<table class="table table-striped table-bordered" id="ecfResultTable"
+				style="margin-bottom: 10px">
+				<tbody>
+					<tr class="headerrow">
+						<th>Competencies</th>
+						<th>Scores</th>
+						<th>Target job profile</th>
+						<th>Gap</th>
+					</tr>
+				</tbody>
+			</table>
+			<canvas id="ecfRespondentChart"></canvas>
+		</div>
+	</c:if>
+
 	<c:if test="${opcredirection != null}">
 		<br /><br />
 		<a class="btn btn-primary" href="${opcredirection}"><spring:message code="label.ConsultationPage" /></a>
@@ -137,6 +157,10 @@
 </div>
 
 <script type="text/javascript">
+	var uniqueCode = "${uniqueCode}";
+	var contextpath = "${contextpath}";
+	var surveyShortname = "${surveyShortname}";
+
 	function startExport()
 	{
 		$("#ask-export-dialog").find(".validation-error").hide();
@@ -200,4 +224,7 @@
 			</c:otherwise>
 		</c:choose>
 	}
+	$(document).ready(function(){
+		const result = fetchECFResult();
+	});
 </script>

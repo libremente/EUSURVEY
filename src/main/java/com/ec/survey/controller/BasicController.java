@@ -24,15 +24,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.ModelAndView;
 
+import com.ec.survey.exception.BadRequestException;
+import com.ec.survey.exception.ForbiddenException;
 import com.ec.survey.exception.ForbiddenURLException;
 import com.ec.survey.exception.FrozenSurveyException;
+import com.ec.survey.exception.InternalServerErrorException;
 import com.ec.survey.exception.InvalidURLException;
 import com.ec.survey.exception.MessageException;
 import com.ec.survey.exception.NoFormLoadedException;
+import com.ec.survey.exception.NotFoundException;
 import com.ec.survey.exception.TooManyFiltersException;
 import com.ec.survey.model.AnswerSet;
 import com.ec.survey.model.Archive;
@@ -44,6 +50,7 @@ import com.ec.survey.service.AdministrationService;
 import com.ec.survey.service.AnswerService;
 import com.ec.survey.service.ArchiveService;
 import com.ec.survey.service.AttendeeService;
+import com.ec.survey.service.ECFService;
 import com.ec.survey.service.ExportService;
 import com.ec.survey.service.FileService;
 import com.ec.survey.service.LdapDBService;
@@ -59,8 +66,8 @@ import com.ec.survey.service.TranslationService;
 import com.ec.survey.tools.ArchiveExecutor;
 import com.ec.survey.tools.ConversionTools;
 import com.ec.survey.tools.InvalidXHTMLException;
-import com.ec.survey.tools.NotAgreedToTosException;
 import com.ec.survey.tools.NotAgreedToPsException;
+import com.ec.survey.tools.NotAgreedToTosException;
 import com.ec.survey.tools.WeakAuthenticationException;
 import com.octo.captcha.service.CaptchaServiceException;
 import com.octo.captcha.service.multitype.MultiTypeCaptchaService;
@@ -129,6 +136,9 @@ public class BasicController implements BeanFactoryAware {
 	
 	@Resource(name = "reportingService")
 	protected ReportingService reportingService;
+
+	@Resource(name = "ecfService")
+	protected ECFService ecfService;
 	
 	public @Value("${captcha.secret}") String captchasecret;
 	public @Value("${ui.enableresponsive}") String enableresponsive;	
@@ -307,6 +317,27 @@ public class BasicController implements BeanFactoryAware {
     public void handleClientAbortException(Exception e, Locale locale, HttpServletRequest request) {
 		logger.info(e.getLocalizedMessage(), e);
     }
+	
+	@ExceptionHandler(NotFoundException.class)
+	public ResponseEntity<String> handleNotFoundException(Exception e) {
+		return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.NOT_FOUND);
+	}
+	
+	@ExceptionHandler(InternalServerErrorException.class)
+	public ResponseEntity<String> handleInternalServerErrorException(Exception e) {
+		logger.error(e.getCause().getMessage(), e.getCause());
+		return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+	
+	@ExceptionHandler(BadRequestException.class)
+	public ResponseEntity<String> handleBadRequestException(Exception e) {
+		return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.BAD_REQUEST);
+	}
+	
+	@ExceptionHandler(ForbiddenException.class)
+	public ResponseEntity<String> handleForbiddenException(Exception e) {
+		return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.FORBIDDEN);
+	}
 	
 	@ExceptionHandler(Exception.class) 
     public ModelAndView handleException(Exception e, Locale locale, HttpServletRequest request, HttpServletResponse response) throws IOException {
