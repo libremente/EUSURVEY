@@ -651,6 +651,8 @@ public class ReportingService {
 		}	
 	}
 	
+	
+	
 	@SuppressWarnings("unchecked")
 	@Transactional(readOnly = true, transactionManager = "transactionManagerReporting")
 	public List<Integer> getAnswerSetIDsInternal(Survey survey, ResultFilter filter, SqlPagination sqlPagination) throws Exception {
@@ -1468,6 +1470,12 @@ public class ReportingService {
 				counter++;
 			}
 		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Transactional(readOnly = true, transactionManager = "transactionManagerReporting")
+	public int getCount(Survey survey) {
+		return this.getCountInternal(survey.getIsDraft(), survey.getUniqueId());
 	}
 
 	@Transactional(readOnly = true, transactionManager = "transactionManagerReporting")

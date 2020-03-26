@@ -5,6 +5,7 @@
 <head>
 	<title>EUSurvey - <spring:message code="label.Thanks" /></title>	
 	<%@ include file="includes.jsp" %>
+	<script type="text/javascript" src="${contextpath}/resources/js/Chart.min.js?version=<%@include file="version.txt" %>"></script>
 	<script type="text/javascript" src="${contextpath}/resources/js/runner.js?version=<%@include file="version.txt" %>"></script>
 	<script type="text/javascript"> 
 		$(function() {					

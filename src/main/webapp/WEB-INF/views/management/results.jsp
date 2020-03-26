@@ -9,6 +9,7 @@
 	
 	<link href="${contextpath}/resources/css/management.css" rel="stylesheet" type="text/css" />
 	<link href="${contextpath}/resources/css/charts.css" rel="stylesheet" type="text/css" />
+	<link href="${contextpath}/resources/css/results.css" rel="stylesheet" type="text/css" />
 	
 	<style>
 	
@@ -360,86 +361,135 @@
 			switch(resultType)
 			{
 				case 'content':
-					$("#results-table-link").addClass("btn-primary");
-					$("#results-statistics-quiz-link").removeClass("btn-primary").addClass("btn-default");
-					$("#results-statistics-link").removeClass("btn-primary").addClass("btn-default");
-					
-					$("#results-table").find("tbody").removeClass('hidden');
-					$("#results-table").find(".RowsPerPage").removeClass('hidden');
-					$("#pager").removeClass('hidden');
-					$("#results-charts").addClass('hidden');
-					$("#results-statistics").addClass('hidden');
-					$("#results-statistics-quiz").addClass('hidden');
-					
-					$("#content-export-buttons").removeClass('hidden');
-					$("#charts-export-buttons").addClass('hidden');
-					$("#statistics-export-buttons").addClass('hidden');
-					$("#statistics-quiz-export-buttons").addClass('hidden');
-					
-					$("#search-buttons").show();				
-					$("#scrollarea").show();
-					
-					if ($('#tbllist-empty').is(":hidden"))
-					{
-						$("#scrollareaheader").css("overflow-x", "hidden");
-					}					
-					$("#scrollareaheader").scrollLeft($("#scrollarea").scrollLeft());
-					
-					if ($('#scrollarea').hasScrollBar())
-					{
-						$("#scrollareaheader").css("overflow-y","scroll");
-					} else {
-						$("#scrollareaheader").css("overflow-y","auto");
-					}
-					  
-					resetSliderPositions($("#contentstable"));
+					hideECF();
+					hideStatisticsQuiz();
+					hideStatistics();
+					showContent();
 					break;
 				case 'statistics':
-					$("#results-table-link").removeClass("btn-primary").addClass("btn-default");
-					$("#results-statistics-quiz-link").removeClass("btn-primary").addClass("btn-default");
-					$("#results-statistics-link").addClass("btn-primary");
-					
-					$("#results-table").find(".RowsPerPage").addClass('hidden');
-					$("#pager").addClass('hidden');
-					$("#results-charts").addClass('hidden');
-					$("#results-statistics").removeClass('hidden');
-					$("#results-statistics-quiz").addClass('hidden');
-					
-					$("#content-export-buttons").addClass('hidden');
-					$("#charts-export-buttons").addClass('hidden');
-					$("#statistics-export-buttons").removeClass('hidden');
-					$("#statistics-quiz-export-buttons").addClass('hidden');
-					
-					$("#scrollarea").hide();
-					
-					$("#scrollareaheader").css("overflow-x", "auto");
-					$("#scrollareaheader").css("overflow-y","auto");
+					hideECF();
+					hideStatisticsQuiz();
+					hideContent();
+					showStatistics();
 					break;
 				case 'statistics-quiz':
-					$("#results-table-link").removeClass("btn-primary").addClass("btn-default");
-					$("#results-statistics-link").removeClass("btn-primary").addClass("btn-default");
-					$("#results-statistics-quiz-link").addClass("btn-primary");
-					
-					$("#results-table").find(".RowsPerPage").addClass('hidden');
-					$("#pager").addClass('hidden');
-					$("#results-charts").addClass('hidden');
-					$("#results-statistics").addClass('hidden');
-					$("#results-statistics-quiz").removeClass('hidden');
-					
-					$("#content-export-buttons").addClass('hidden');
-					$("#charts-export-buttons").addClass('hidden');
-					$("#statistics-export-buttons").addClass('hidden');
-					$("#statistics-quiz-export-buttons").removeClass('hidden');
-					
-					$("#scrollarea").hide();
-					
-					$("#scrollareaheader").css("overflow-x", "auto");
-					$("#scrollareaheader").css("overflow-y","auto");
+					hideECF();
+					hideStatistics();
+					hideContent();
+					showStatisticsQuiz();
+					break;
+				case 'ecf':
+					hideStatisticsQuiz();
+					hideContent();
+					hideStatistics();
+					showECF();
 					break;
 			}
 			
 			$('#resultType').val(resultType);
 			//checkDeleteBoxes();			
+		}
+		
+		// Shows all the elements present in the content
+		function showContent() {
+			console.log("showContent()");
+			$("#results-table-link").addClass("btn-primary");
+			$("#results-table").find("tbody").removeClass('hidden');
+			$("#results-table").find(".RowsPerPage").removeClass('hidden');
+			$("#pager").removeClass('hidden');
+			$("#content-export-buttons").removeClass('hidden');
+			$("#scrollarea").show();
+			
+			// Scrollareaheader
+			if ($('#tbllist-empty').is(":hidden"))
+			{
+				$("#scrollareaheader").css("overflow-x", "hidden");
+			}					
+			$("#scrollareaheader").scrollLeft($("#scrollarea").scrollLeft());
+			
+			if ($('#scrollarea').hasScrollBar())
+			{
+				$("#scrollareaheader").css("overflow-y","scroll");
+			} else {
+				$("#scrollareaheader").css("overflow-y","auto");
+			}
+			  
+			resetSliderPositions($("#contentstable"));
+			
+			// Nothing in hide
+			$("#search-buttons").show();				
+			
+			// Strange common to all?
+			$("#results-charts").addClass('hidden');
+			$("#charts-export-buttons").addClass('hidden');
+		}
+		
+		
+		// Hides all the elements present in the content
+		function hideContent() {
+			console.log("hideContent()");
+			$("#results-table-link").removeClass("btn-primary").addClass("btn-default");
+			// $("#results-table").find("tbody").addClass('hidden');
+			$("#results-table").find(".RowsPerPage").addClass('hidden');
+			$("#pager").addClass('hidden');
+			$("#content-export-buttons").addClass('hidden');
+			$("#scrollarea").hide();
+			
+			$("#scrollareaheader").css("overflow-x", "auto");
+			$("#scrollareaheader").css("overflow-y","auto");
+		}
+		
+		function showStatistics() {
+			console.log("showStatistics()");
+			$("#results-statistics-link").addClass("btn-primary");
+			$("#results-statistics").removeClass('hidden');
+			$("#statistics-export-buttons").removeClass('hidden');
+			
+			// Strange?
+			$("#results-charts").addClass('hidden');
+			$("#charts-export-buttons").addClass('hidden');
+		}
+		
+		function hideStatistics() {
+			console.log("hideStatistics()");
+			$("#results-statistics-link").removeClass("btn-primary").addClass("btn-default");
+			$("#results-statistics").addClass('hidden');
+			$("#statistics-export-buttons").addClass('hidden');
+		}
+		
+		function showStatisticsQuiz() {
+			console.log("showStatisticsQuiz()")
+			$("#results-statistics-quiz-link").addClass("btn-primary");
+			$("#results-statistics-quiz").removeClass('hidden');
+			$("#statistics-quiz-export-buttons").removeClass('hidden');
+			
+			// Strange?
+			$("#results-charts").addClass('hidden');
+			$("#charts-export-buttons").addClass('hidden');
+		}
+		function hideStatisticsQuiz() {
+			console.log("hideStatisticsQuiz()");
+			$("#results-statistics-quiz-link").removeClass("btn-primary").addClass("btn-default");
+			$("#results-statistics-quiz").addClass('hidden');
+			$("#statistics-quiz-export-buttons").addClass('hidden');
+		}
+		
+		function showECF() {
+			console.log('showECF()');
+			$("#results-table").addClass('hidden');
+			$("#results-ecf").addClass("btn-primary");
+			$("#ecf-results").removeClass('hidden');
+			
+			// Strange?
+			$("#results-charts").addClass('hidden');
+			$("#charts-export-buttons").addClass('hidden');
+		}
+		
+		function hideECF() {
+			console.log('hideECF');
+			$("#results-table").removeClass('hidden');
+			$("#ecf-results").addClass('hidden');
+			$("#results-ecf").removeClass("btn-primary").addClass("btn-default");
 		}
 		
 		var exportType;
@@ -764,6 +814,9 @@
 					<c:if test="${form.survey.isQuiz}">
 						<a id="results-statistics-quiz-link" class="btn btn-default btn-xs" onclick="switchTo('statistics-quiz');"><span class="glyphicon glyphicon-education" style="font-size: 19px; color: #333"></span></a>
 					</c:if>
+					<c:if test="${form.survey.isECF}">
+						<a id="results-ecf" class="btn btn-default btn-xs" onclick="switchTo('ecf');"><span class="glyphicon glyphicon-user" style="font-size: 19px; color: #333"></span></a>
+					</c:if>
 				</div>
 				
 				<div style="float: left; margin-top: 0px; margin-right: 20px;">
@@ -890,6 +943,7 @@
 				<%@ include file="results-statistics.jsp" %>
 				<%@ include file="results-statistics-quiz.jsp" %>
 				<%@ include file="results-ajax.jsp" %>	
+				<%@ include file="results-ecf.jsp" %>
 			</div>
 		</div>
 

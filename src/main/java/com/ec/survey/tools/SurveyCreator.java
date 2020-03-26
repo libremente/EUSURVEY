@@ -2,11 +2,13 @@ package com.ec.survey.tools;
 
 import com.ec.survey.model.*;
 import com.ec.survey.model.administration.User;
+import org.hibernate.Session;
 import com.ec.survey.model.survey.*;
 import com.ec.survey.service.FileService;
 import com.ec.survey.service.SurveyService;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.ServletContext;
 
@@ -18,6 +20,85 @@ public class SurveyCreator {
 
 	static int SurveyCounter = 1;
 	private static final Logger logger = Logger.getLogger(SurveyCreator.class);
+
+	public static Survey createNewECFSurvey(User owner, Language language,
+	 List<ECFCompetency> competencies, List<ECFProfile> profiles)  {
+		logger.info("Creating the ECF survey");
+		logger.info("There are " + competencies.size() + " competencies");
+		logger.info("There are " + profiles.size() + " profiles");
+		Survey survey = new Survey();
+		survey.setContact(owner.getEmail());
+		survey.setIsDraft(true);
+		survey.setCreated(new Date());
+		survey.setOwner(owner);
+		survey.setSecurity("open");
+		survey.setShortname("theEcfSurvey");
+		survey.setLanguage(language);
+		survey.setListForm(false);
+		survey.setTitle("ECF Survey");
+		survey.setCaptcha(false);
+		survey.setSectionNumbering(1);
+		survey.setQuestionNumbering(1);
+		survey.setIsECF(true);
+		
+		int position = 1;
+		
+		// adding a Section
+		Section section = new Section(survey, "ECF Survey", "section1", UUID.randomUUID().toString());
+		section.setPosition(position++);
+		section.setLevel(1);
+		survey.getElements().add(section);
+
+		// adding the profile selection question
+		SingleChoiceQuestion profileScQuestion = new SingleChoiceQuestion(survey,
+		 "Profiles selection", "profileSelection", UUID.randomUUID().toString());
+		profileScQuestion.setPosition(position++);
+		profileScQuestion.setHelp("Please choose your profile");
+		profileScQuestion.setOptional(false);
+		profileScQuestion.setUseRadioButtons(true);
+
+		// generating one answer per profile
+		int answerPosition = 0;
+		for (ECFProfile ecfProfile : profiles) {
+			PossibleAnswer possibleAnswer = new PossibleAnswer();
+			possibleAnswer.setEcfProfile(ecfProfile);
+			possibleAnswer.setUniqueId(UUID.randomUUID().toString());
+			possibleAnswer.setPosition(answerPosition);
+			possibleAnswer.setShortname("profile." + ecfProfile.getProfileUid());
+			possibleAnswer.setTitle("Profile " + ecfProfile.getName());
+
+			profileScQuestion.getPossibleAnswers().add(possibleAnswer);
+			answerPosition++;
+		}
+		survey.getElements().add(profileScQuestion);
+
+		// generating 2 questions per competency
+		int numberOfQuestionsForOneCompetency = 2;
+		for (ECFCompetency ecfCompetency : competencies) {
+			for (int noqfoc=0; noqfoc< numberOfQuestionsForOneCompetency; noqfoc++) {
+				SingleChoiceQuestion singleChoiceQuestion = new SingleChoiceQuestion(survey,
+				"Competency " + ecfCompetency.getName() + " question " + noqfoc,
+				"q" +noqfoc + ".competency." + ecfCompetency.getCompetenceUid(),
+				 UUID.randomUUID().toString());
+				singleChoiceQuestion.setPosition(position++);
+				singleChoiceQuestion.setHelp("Please choose from 0 to 4");
+				singleChoiceQuestion.setOptional(false);
+				singleChoiceQuestion.setUseRadioButtons(true);
+				singleChoiceQuestion.setEcfCompetency(ecfCompetency);
+				for (int i = 0; i < 5; i++) {
+					PossibleAnswer possibleAnswer = new PossibleAnswer();
+					possibleAnswer.setUniqueId(UUID.randomUUID().toString());
+					possibleAnswer.setPosition(i);
+					possibleAnswer.setShortname("answer." + i);
+					possibleAnswer.setTitle("Answer " + Integer.toString(i));
+					singleChoiceQuestion.getPossibleAnswers().add(possibleAnswer);
+				}
+				survey.getElements().add(singleChoiceQuestion);
+			}
+		}
+
+		return survey;
+	}
 	
 	public static Survey createNewSelfRegistrationSurvey(User owner, Language la, List<Language> langs)
 	{

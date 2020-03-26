@@ -1,5 +1,10 @@
 package com.ec.survey.controller;
 
+import com.ec.survey.exception.BadRequestException;
+import com.ec.survey.exception.InternalServerErrorException;
+import com.ec.survey.exception.ECFException;
+import com.ec.survey.exception.NotFoundException;
+import com.ec.survey.exception.ForbiddenException;
 import com.ec.survey.exception.ForbiddenURLException;
 import com.ec.survey.exception.FrozenSurveyException;
 import com.ec.survey.exception.InvalidURLException;
@@ -50,6 +55,8 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import com.ec.survey.model.survey.ecf.ECFIndividualResult;
+import com.ec.survey.model.survey.ecf.ECFGlobalResult;
 
 @Controller
 @RequestMapping("/{shortname}/management")
@@ -61,11 +68,13 @@ public class ManagementController extends BasicController {
 	public @Value("${opc.users}") String opcusers;
 	public @Value("${opc.department:@null}") String opcdepartments;
 	public @Value("${opc.template}") String opctemplatesurvey;
+	public @Value("${ecf.template}") String ecfTemplateSurvey;
 
 	@InitBinder
 	protected void initBinder(HttpServletRequest request, ServletRequestDataBinder binder) {
 		SimpleDateFormat dateFormat = new SimpleDateFormat(ConversionTools.DateFormat);
 		CustomDateEditor editor = new CustomDateEditor(dateFormat, true);
+		
 		binder.registerCustomEditor(Date.class, editor);
 
 		binder.registerCustomEditor(Language.class, "survey.language", new PropertyEditorSupport() {
@@ -985,6 +994,8 @@ public class ManagementController extends BasicController {
 					request.getParameter("quiz") != null && request.getParameter("quiz").equalsIgnoreCase("true"));
 			uploadedSurvey.setIsOPC(
 					request.getParameter("opc") != null && request.getParameter("opc").equalsIgnoreCase("true"));
+			uploadedSurvey.setIsECF(
+					request.getParameter("ecf") != null && request.getParameter("ecf").equalsIgnoreCase("true"));
 			uploadedSurvey.setSaveAsDraft(!uploadedSurvey.getIsQuiz());
 
 			if (uploadedSurvey.getTitle() != null
@@ -1276,6 +1287,7 @@ public class ManagementController extends BasicController {
 		survey.setContactLabel(Tools.escapeHTML(uploadedSurvey.getContactLabel()));
 		survey.setIsQuiz(uploadedSurvey.getIsQuiz());
 		survey.setIsOPC(uploadedSurvey.getIsOPC());
+		survey.setIsECF(uploadedSurvey.getIsECF());
 		survey.setSaveAsDraft(uploadedSurvey.getSaveAsDraft());
 		survey.setShowQuizIcons(uploadedSurvey.getShowQuizIcons());
 		survey.setShowTotalScore(uploadedSurvey.getShowTotalScore());
@@ -1302,6 +1314,24 @@ public class ManagementController extends BasicController {
 						String newUniqueId = UUID.randomUUID().toString();
 						elem.setUniqueId(newUniqueId);
 					}
+				}
+			}
+		}
+		if (survey.getIsECF()) {
+			if (creation) {
+				survey.setWcagCompliance(true);
+				if (ecfTemplateSurvey != null && ecfTemplateSurvey.length() > 0) {
+					Survey template = surveyService.getSurveyByAlias(ecfTemplateSurvey, true);
+					template.copyElements(survey, surveyService, true);
+
+					// recreate unique ids
+					for (Element elem : survey.getElementsRecursive(true)) {
+						String newUniqueId = UUID.randomUUID().toString();
+						elem.setUniqueId(newUniqueId);
+					}
+
+					// recreate the ecf elements
+					survey = this.ecfService.copySurveyECFElements(survey);
 				}
 			}
 		}
@@ -2907,6 +2937,15 @@ public class ManagementController extends BasicController {
 			result.addObject("statistics", statistics);
 			filter.setVisibleQuestions(filter.getExportedQuestions());
 		}
+		
+		if (survey.getIsECF()) {
+			SqlPagination sqlPagination = new SqlPagination(1, 10);
+			ECFGlobalResult ecfGlobalResult = this.ecfService.getECFGlobalResult(survey, sqlPagination, null);
+			Set<ECFProfile> ecfProfiles = this.ecfService.getECFProfiles(survey);
+			result.addObject("ecfGlobalResult", ecfGlobalResult);
+			result.addObject("ecfProfiles", ecfProfiles);
+			result.addObject("surveyShortname", shortname);
+		}
 
 		result.addObject("filter", filter);
 
@@ -3209,7 +3248,88 @@ public class ManagementController extends BasicController {
 		return null;
 	}
 
-	@RequestMapping(value = "/statisticsJSON", method = { RequestMethod.GET, RequestMethod.HEAD })
+	@RequestMapping(value = "/ecfResultJSON", method = { RequestMethod.GET, RequestMethod.HEAD })
+	public @ResponseBody ECFIndividualResult ecfResultJSON(@PathVariable String shortname, HttpServletRequest request)
+	throws NotFoundException, InternalServerErrorException {
+		String answerSetIdOrNull = request.getParameter("answerSetId");
+		if (answerSetIdOrNull == null) {
+			throw new NotFoundException();
+		}
+		AnswerSet answerSet = answerService.get(answerSetIdOrNull);
+
+		ECFIndividualResult ecfResult;
+		try {
+			Survey survey = surveyService.getSurvey(shortname, false, true, false, false, null, true, false);
+			ecfResult = this.ecfService.getECFIndividualResult(survey, answerSet);
+		} catch (ECFException e) {
+			throw new InternalServerErrorException(e);
+		}
+
+		return ecfResult;
+	}
+	
+	@RequestMapping(value = "/ecfResultsJSON", method = { RequestMethod.GET, RequestMethod.HEAD })
+	public @ResponseBody ECFGlobalResult ecfResultsJSON(@PathVariable String shortname, HttpServletRequest request) 
+			throws NotFoundException, BadRequestException, InternalServerErrorException, NotAgreedToTosException, WeakAuthenticationException, NotAgreedToPsException, ForbiddenException {
+		// PARAMS
+		String pageNumberOrNull = request.getParameter("pageNumber");
+		String pageSizeOrNull = request.getParameter("pageSize");
+		String profileOrNull = request.getParameter("profile");
+
+		if (pageNumberOrNull == null || pageSizeOrNull == null) {
+			throw new BadRequestException();
+		}
+
+		Integer pageNumber = Integer.valueOf(pageNumberOrNull);
+		Integer pageSize = Integer.valueOf(pageSizeOrNull);
+
+		SqlPagination sqlPagination = new SqlPagination(pageNumber, pageSize);
+
+		// AUTHORISATION
+		// TODO: bypass if publication of these results?
+		
+		ResultFilter filter = sessionService.getLastResultFilter(request);
+		Survey survey = (filter != null) 
+				? surveyService.getSurvey(filter.getSurveyId(), true) 
+				: surveyService.getSurvey(shortname, false, true, false, false, null, true, false);
+				
+		User user = sessionService.getCurrentUser(request);
+		try {
+			this.sessionService.upgradePrivileges(survey, user, request);
+		} catch (Exception e1) {
+			throw new InternalServerErrorException(e1);
+		}
+		if (!survey.getOwner().getId().equals(user.getId())) {
+			if (!(user.getGlobalPrivileges().get(GlobalPrivilege.FormManagement) >= 2)) {
+				if (!(user.getLocalPrivileges().get(LocalPrivilege.FormManagement) >= 1)) {
+					if (!(user.getLocalPrivileges().get(LocalPrivilege.AccessResults) >= 1)) {
+						throw new ForbiddenException();
+					}
+				}
+			}
+		}
+		
+		// ACTUAL CODE
+		try {
+			if (profileOrNull != null && !profileOrNull.isEmpty()) {
+				ECFProfile ecfProfileOrNull = this.ecfService.getProfileByUUID(profileOrNull);
+				if (ecfProfileOrNull == null) {
+					throw new NotFoundException();
+				} else {
+					return this.ecfService.getECFGlobalResult(survey, sqlPagination, ecfProfileOrNull);
+				}
+			} else {
+				return this.ecfService.getECFGlobalResult(survey, sqlPagination);
+			}
+
+		} catch (NotFoundException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new InternalServerErrorException(e);
+		}
+	}
+	
+	@RequestMapping(value = "/statisticsJSON", method = {RequestMethod.GET, RequestMethod.HEAD})
 	public @ResponseBody Statistics statisticsJSON(@PathVariable String shortname, HttpServletRequest request) {
 
 		try {

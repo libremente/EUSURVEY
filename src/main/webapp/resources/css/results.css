@@ -1,0 +1,24 @@
+#ecf-results {padding: 1.5em;}
+
+.greenScore {
+	display: inline-block;
+	color: green;
+}
+
+.redScore {
+	display: inline-block;
+	color: red;
+}
+
+#ecfResultTable {
+	margin-bottom: 1em;
+	margin-top: 1em;
+}
+
+.score {
+	display: inline
+}
+
+.gap {
+	display: inline
+}

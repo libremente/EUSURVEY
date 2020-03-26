@@ -30,7 +30,6 @@ import java.util.List;
 
 @Service("schemaService")
 public class SchemaService extends BasicService {
-
 	private @Value("${showecas}") String showecas;
 
 	// OCAS
@@ -43,6 +42,37 @@ public class SchemaService extends BasicService {
 	@Resource(name = "domainWorker")
 	private DomainUpdater domaintWorker;
 	
+	@Transactional
+	public void step95() {
+		try {
+			Session session = sessionFactory.getCurrentSession();
+
+			final String event = "CREATE TABLE IF NOT EXISTS MV_SURVEYS_NUMBERPUBLISHEDANSWERS("+
+				"SURVEYUID varchar(255) NOT NULL," +
+				"PUBLISHEDANSWERS bigint(21) NOT NULL DEFAULT 0," + 
+				"LASTANSWER datetime DEFAULT NULL," + 
+				"MW_TIMESTAMP datetime NOT NULL DEFAULT '0000-00-00 00:00:00'," + 
+				"KEY MV_SURVEYS_IND (SURVEYUID,PUBLISHEDANSWERS)" + 
+			  ") ENGINE=InnoDB CHARSET=utf8;";
+			session.doWork(con -> con.createStatement().execute(event));
+
+			User admin = administrationService.getUserForLogin(administrationService.getAdminUser(), false);
+			Language objLang = surveyService.getLanguage("EN");
+			List<ECFProfile> ecfProfiles = ecfService.createDummyEcfProfiles();
+			Survey ecfSurvey = SurveyCreator.createNewECFSurvey(admin, objLang,
+			ecfService.createCompetencies(ecfProfiles), ecfProfiles);
+			surveyService.add(ecfSurvey, -1);
+			surveyService.publish(ecfSurvey, -1, -1, false, -1, false, false);
+
+			Status status = getStatus();
+			status.setDbversion(95);
+			session.saveOrUpdate(status);
+		} catch (Exception e) {
+			logger.error(e.getMessage(),e);
+			logger.error(e.getLocalizedMessage(), e.getCause());
+		}
+	}
+
 	@Transactional
 	public void step94() {
 		Session session = sessionFactory.getCurrentSession();

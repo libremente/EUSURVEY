@@ -373,6 +373,7 @@
 		var surveyShortname = "${form.survey.shortname}";
 		var surveyUniqueId = "${form.survey.uniqueId}";
 		var isQuiz = ${form.survey.isQuiz};
+		var isECF = ${form.survey.isECF};
 		var isOPC = ${form.survey.isOPC};
 		var automaticNumbering = ${form.survey.sectionNumbering != 0 || form.survey.questionNumbering != 0};
 		

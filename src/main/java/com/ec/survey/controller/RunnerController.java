@@ -649,8 +649,13 @@ public class RunnerController extends BasicController {
 			}
 
 			ModelAndView result = new ModelAndView("thanks", "uniqueCode", answerSet.getUniqueCode());
+			
+			if (survey.getIsECF()) {
+				result.addObject("ecfResults","example");
+			}
 
-			if (survey.getIsOPC()) {
+			if (survey.getIsOPC())
+			{
 				result.addObject("opcredirection", survey.getFinalConfirmationLink(opcredirect, lang));
 			}
 
@@ -1989,7 +1994,14 @@ public class RunnerController extends BasicController {
 				result.addObject("participantsemail", answerSet.getResponderEmail());
 			}
 
-			result.addObject("isthankspage", true);
+			if (survey.getIsECF()) {
+				// compute results
+				result.addObject("ecfResults", "example");
+				result.addObject("contextpath", contextpath);
+				result.addObject("surveyShortname", survey.getShortname());
+			}
+
+			result.addObject("isthankspage",true);
 			result.addObject("runnermode", true);
 
 			Form form = new Form(resources, surveyService.getLanguage(lang),
