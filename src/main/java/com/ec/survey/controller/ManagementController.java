@@ -34,7 +34,16 @@ import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.ServletRequestDataBinder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.support.DefaultMultipartHttpServletRequest;
 import org.springframework.web.servlet.ModelAndView;
 
@@ -1414,6 +1423,8 @@ public class ManagementController extends BasicController {
 				if (!Objects.equals(uploadedSurvey.getEcasMode(), survey.getEcasMode())) {
 					survey.setEcasMode(uploadedSurvey.getEcasMode());
 				}
+
+				survey.setPassword(uploadedSurvey.getPassword());
 			}
 
 			if (uploadedSurvey.getValidatedPerPage() != survey.getValidatedPerPage()) {
@@ -2088,7 +2099,7 @@ public class ManagementController extends BasicController {
 		return result;
 	}
 
-	@PostMapping(value = "/checkXHTML")
+	@PostMapping(value = "/checkXHTML") 
 	public @ResponseBody XHTMLValidation checkXHTML(@RequestBody String data, HttpServletRequest request) {
 		return new XHTMLValidation(data, !XHTMLValidator.validate(data, servletContext, null));
 	}
@@ -2098,7 +2109,7 @@ public class ManagementController extends BasicController {
 			throws Exception {
 		Form form;
 		form = sessionService.getForm(request, shortname, false, false);
-
+		
 		User u = sessionService.getCurrentUser(request);
 		if (!u.getId().equals(form.getSurvey().getOwner().getId())
 				&& u.getGlobalPrivileges().get(GlobalPrivilege.FormManagement) < 2
@@ -3429,7 +3440,26 @@ public class ManagementController extends BasicController {
 			throw new InternalServerErrorException(e);
 		}
 	}
-	
+
+	@RequestMapping(value = "/ecfResultJSON", method = { RequestMethod.GET, RequestMethod.HEAD })
+	public @ResponseBody ECFIndividualResult ecfResultJSON(@PathVariable String shortname, HttpServletRequest request)
+	throws NotFoundException, InternalServerErrorException {
+		String answerSetIdOrNull = request.getParameter("answerSetId");
+		if (answerSetIdOrNull == null) {
+			throw new NotFoundException();
+		}
+		AnswerSet answerSet = answerService.get(answerSetIdOrNull);
+
+		ECFIndividualResult ecfResult;
+		try {
+			Survey survey = surveyService.getSurvey(shortname, false, true, false, false, null, true, false);
+			ecfResult = this.ecfService.getECFIndividualResult(survey, answerSet);
+		} catch (ECFException e) {
+			throw new InternalServerErrorException(e);
+		}
+
+		return ecfResult;
+	}
 	
 	@RequestMapping(value = "/statisticsJSON", method = {RequestMethod.GET, RequestMethod.HEAD})
 	public @ResponseBody Statistics statisticsJSON(@PathVariable String shortname, HttpServletRequest request) {

@@ -48,7 +48,6 @@ public class ECFGlobalCompetencyResult implements Comparable {
 	public void setCompetencyScores(List<Integer> competencyScores) {
 		this.competencyScores = competencyScores;
 	}
-
 	public void addCompetencyScore(Integer competencyScore) {
 		this.competencyScores.add(competencyScore);
 	}
@@ -60,7 +59,6 @@ public class ECFGlobalCompetencyResult implements Comparable {
 	public void setCompetencyScoreGaps(List<Integer> competencyScoreGaps) {
 		this.competencyScoreGaps = competencyScoreGaps;
 	}
-
 	public void addCompetencyScoreGap(Integer scoreGap) {
 		this.competencyScoreGaps.add(scoreGap);
 	}

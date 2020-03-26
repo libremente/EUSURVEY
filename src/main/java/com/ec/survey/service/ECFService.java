@@ -1365,7 +1365,6 @@ public class ECFService extends BasicService {
 		if (ecfSurvey == null || !ecfSurvey.getIsECF()) {
 			throw new IllegalArgumentException("survey needs to be ECF to get its profile");
 		}
-
 		Set<ECFProfile> profileSet = new HashSet<>();
 		for (Element element : ecfSurvey.getElementsRecursive(true)) {
 			if (element instanceof PossibleAnswer) {
@@ -1375,7 +1374,6 @@ public class ECFService extends BasicService {
 				}
 			}
 		}
-
 		return profileSet;
 	}
 
