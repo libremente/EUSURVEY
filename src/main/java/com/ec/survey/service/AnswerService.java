@@ -370,7 +370,16 @@ public class AnswerService extends BasicService {
 
 		return result;
 	}
+	
+	@Transactional(readOnly = true)
+	public List<AnswerSet> getAnswersFromReporting(Survey survey, SqlPagination sqlPagination) throws Exception {
+		return this.getAnswers(survey, null, sqlPagination, false, false, true);
+	}
 
+	/**
+	 * Returns all the AnswerSets for a specific survey, given a specific Pagination
+	 * ResultFilter can be null to avoid filtering
+	 */
 	@Transactional(readOnly = true)
 	public List<AnswerSet> getAnswers(Survey survey, ResultFilter filter, SqlPagination sqlPagination, boolean loadDraftIds, boolean initFiles, boolean usereportingdatabase) throws Exception {
 		Session session = sessionFactory.getCurrentSession();

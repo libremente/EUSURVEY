@@ -668,6 +668,8 @@ public class ReportingService {
 		}	
 	}
 	
+	
+	
 	@SuppressWarnings("unchecked")
 	@Transactional(readOnly = true, transactionManager = "transactionManagerReporting")
 	public List<Integer> getAnswerSetIDsInternal(Survey survey, ResultFilter filter, SqlPagination sqlPagination) throws Exception {
@@ -778,7 +780,7 @@ public class ReportingService {
 		if (publishedversion)
 		{
 			//create published survey table
-			Survey survey = surveyService.getSurveyWithMissingElements(shortname, false, false, false, false, null, true, false);
+			Survey survey = surveyService.getSurvey(shortname, false, false, false, false, null, true, false);
 			if (survey != null && !survey.getIsDeleted() && !survey.getArchived()) {
 				if (!OLAPTableExistsInternal(survey.getUniqueId(), false))
 				{
@@ -1481,6 +1483,12 @@ public class ReportingService {
 			}
 		}
 	}
+	
+	@SuppressWarnings("unchecked")
+	@Transactional(readOnly = true, transactionManager = "transactionManagerReporting")
+	public int getCount(Survey survey) {
+		return this.getCount(survey, null, null);
+	}
 
 	@Transactional(readOnly = true, transactionManager = "transactionManagerReporting")
 	public int getCountInternal(Survey survey, String where, Map<String, Object> values) {
@@ -1843,8 +1851,7 @@ public class ReportingService {
 		
 		Query query=sessionReporting.createSQLQuery(sql);
 		query.setResultTransformer(AliasToEntityMapResultTransformer.INSTANCE);
-		@SuppressWarnings("unchecked")
-		List<Map<String,Object>> aliasToValueMapList=query.list();
+		List<Map<String,Object>> aliasToValueMapList = query.list();
 		
 		List<Object> result = new ArrayList<Object>();
 		

@@ -4,6 +4,7 @@ import com.ec.survey.exception.InvalidURLException;
 import com.ec.survey.model.*;
 import com.ec.survey.model.administration.GlobalPrivilege;
 import com.ec.survey.model.administration.LocalPrivilege;
+import com.ec.survey.model.administration.Role;
 import com.ec.survey.model.administration.User;
 import com.ec.survey.model.survey.*;
 import com.ec.survey.model.survey.base.File;
@@ -70,6 +71,10 @@ public class SurveyService extends BasicService {
 		if (res.size() > 0)
 			return ConversionTools.getValue(res.get(0));
 		return 0;
+	}
+
+	public Survey ecfCopy(Survey alreadyCopiedSurvey) {
+		return this.ecfService.copySurveyECFElements(alreadyCopiedSurvey);
 	}
 
 	private Map<Integer, Language> getLanguageMap() {
@@ -564,6 +569,33 @@ public class SurveyService extends BasicService {
 		return null;
 	}
 
+
+	@Transactional(readOnly = true)
+	public Survey getSurveyByAlias(String alias, boolean draft) {
+		Session session = sessionFactory.getCurrentSession();
+		Query query = session.createQuery("SELECT id FROM Survey s WHERE s.shortname = :alias AND s.isDraft = :draft ORDER BY s.id DESC").setString("alias", alias);
+		query.setBoolean("draft", draft);
+
+		@SuppressWarnings("unchecked")
+		List<Survey> list = query.setReadOnly(true).setMaxResults(1).list();
+		if (list.size() > 0) {
+			Survey survey = getSurvey(ConversionTools.getValue(list.get(0)));
+
+			if (survey != null) {
+				synchronizeSurvey(survey, survey.getLanguage().getCode(), true);
+			}
+
+			session.setReadOnly(survey, true);
+			for (Element e : survey.getElementsRecursive(true)) {
+				session.setReadOnly(e, true);
+			}
+
+			return survey;
+		}
+		return null;
+	}
+
+
 	@Transactional(readOnly = true)
 	public Survey getSurveyByUniqueId(String uid, boolean loadTranslations, boolean draft) {
 		Session session = sessionFactory.getCurrentSession();
@@ -845,7 +877,7 @@ public class SurveyService extends BasicService {
 		int id = (Integer) session.save(survey);
 		Survey result = (Survey) session.get(Survey.class, id);
 
-		UpdatePossibleAnswers(result);
+		updatePossibleAnswers(result);
 		session.update(result);
 
 		if (synchronize)
@@ -856,7 +888,7 @@ public class SurveyService extends BasicService {
 		return result;
 	}
 
-	private void UpdatePossibleAnswers(Survey survey) {
+	private void updatePossibleAnswers(Survey survey) {
 		for (Element element : survey.getElements()) {
 			if (element instanceof ChoiceQuestion) {
 				for (PossibleAnswer pa : ((ChoiceQuestion) element).getPossibleAnswers()) {
@@ -882,7 +914,10 @@ public class SurveyService extends BasicService {
 		int trustValueNbContributions = Integer.parseInt(settingsService.get(Setting.TrustValueNbContributions));
 		
 		//Rule 0: if the Form Manager is internal
-		if (!survey.getOwner().isExternal())
+		UserFilter userFilter = new UserFilter();
+		userFilter.setLogin(survey.getOwner().getLogin());
+		User owner = administrationService.getUser(userFilter);
+		if (!owner.isExternal())
 		{
 			score += trustValueCreatorInternal;
 		}
@@ -1490,7 +1525,7 @@ public class SurveyService extends BasicService {
 
 		session.flush();
 
-		UpdatePossibleAnswers(survey);
+		updatePossibleAnswers(survey);
 		session.update(survey);
 
 		session.flush();
@@ -2666,6 +2701,8 @@ public class SurveyService extends BasicService {
 				hasPendingChanges = true;
 
 			if (!Tools.isEqual(draft.getIsQuiz(), published.getIsQuiz()))
+				hasPendingChanges = true;
+			if (!Tools.isEqual(draft.getIsECF(), published.getIsECF()))
 				hasPendingChanges = true;
 			if (!Tools.isEqualIgnoreEmptyString(draft.getQuizWelcomeMessage(), published.getQuizWelcomeMessage()))
 				hasPendingChanges = true;
