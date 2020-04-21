@@ -108,6 +108,10 @@
 							code="label.ECF.SortByNameAsc" /></option>
 				</select>
 			</div>
+			<label class="labelInfoDarker" >
+				<spring:message code="label.ECF.NbInviduals" />&nbsp;
+				<div class="numberOfAnswers" id="individualNumberOfAnswers">${ecfGlobalResult.numberOfResults}</div>
+			</label>
 		</div>
 	</div>
 

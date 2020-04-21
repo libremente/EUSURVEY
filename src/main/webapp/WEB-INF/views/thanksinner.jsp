@@ -245,7 +245,4 @@
 			</c:otherwise>
 		</c:choose>
 	}
-	$(document).ready(function(){
-		const result = fetchECFResult();
-	});
 </script>

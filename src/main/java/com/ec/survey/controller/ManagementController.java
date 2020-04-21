@@ -3282,7 +3282,6 @@ public class ManagementController extends BasicController {
 		logger.info("profileComparison " + profileComparisonOrNull);
 		logger.info("profileFilter " + profileFilterOrNull);
 		String orderByOrNull = request.getParameter("orderBy");
-
 		if (pageNumberOrNull == null || pageSizeOrNull == null) {
 			throw new BadRequestException();
 		}

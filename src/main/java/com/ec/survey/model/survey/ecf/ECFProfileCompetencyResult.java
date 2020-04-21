@@ -41,10 +41,6 @@ public class ECFProfileCompetencyResult implements Comparable {
 		this.competencyTargetScore = competencyTargetScore;
 	}
 
-	public Float getCompetencyAverageScore() {
-		return competencyAverageScore;
-	}
-
 	public void setCompetencyAverageScore(Float competencyAverageScore) {
 		this.competencyAverageScore = competencyAverageScore;
 	}
@@ -79,6 +75,7 @@ public class ECFProfileCompetencyResult implements Comparable {
 				+ competencyTargetScore + ", competencyAverageScore=" + competencyAverageScore + ", competencyMaxScore="
 				+ competencyMaxScore + ", competencyScoreGap=" + competencyScoreGap + ", order=" + order + "]";
 	}
+
 
 	@Override
 	public int compareTo(Object otherObject) {
