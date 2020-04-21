@@ -35,12 +35,11 @@ public class ECFIndividualCompetencyResult implements Comparable {
         this.questionsScores.add(oneQuestionScore);
     }
 
+    public void setCompetencyScore(Integer competencyScore) {
+        this.competencyScore = competencyScore;
+    }
+    
     public Integer getCompetencyScore() {
-        Integer sum = 0;
-        for (Integer questionScore : questionsScores) {
-            sum += questionScore;
-        }
-        this.competencyScore = sum / questionsScores.size();
         return competencyScore;
     }
 

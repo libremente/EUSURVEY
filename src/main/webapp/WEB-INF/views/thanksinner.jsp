@@ -42,6 +42,8 @@
 			</table>
 			<canvas id="ecfRespondentChart"></canvas>
 		</div>
+	<c:if test="${isECF}">
+		<%@ include file="ecfGraph.jsp" %>
 	</c:if>
 	<c:if test="${opcredirection != null}">
 		<br /><br />
@@ -243,7 +245,4 @@
 			</c:otherwise>
 		</c:choose>
 	}
-	$(document).ready(function(){
-		const result = fetchECFResult();
-	});
 </script>

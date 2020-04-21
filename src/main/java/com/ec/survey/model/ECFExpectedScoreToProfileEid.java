@@ -12,11 +12,11 @@ public class ECFExpectedScoreToProfileEid implements Serializable {
 	 */
 	private static final long serialVersionUID = -4183214707510584371L;
 
-	@ManyToOne(cascade = CascadeType.ALL)
+	@ManyToOne
 	@JoinColumn(name = "COMPETENCY", referencedColumnName = "COMPETENCY_ID")
 	protected ECFCompetency competency;
 
-	@ManyToOne(cascade = CascadeType.ALL)
+	@ManyToOne
 	@JoinColumn(name = "PROFILE", referencedColumnName = "PROFILE_ID")
 	protected ECFProfile profile;
 

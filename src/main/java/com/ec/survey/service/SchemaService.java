@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 @Service("schemaService")
 public class SchemaService extends BasicService {
@@ -58,9 +59,9 @@ public class SchemaService extends BasicService {
 
 			User admin = administrationService.getUserForLogin(administrationService.getAdminUser(), false);
 			Language objLang = surveyService.getLanguage("EN");
-			List<ECFProfile> ecfProfiles = ecfService.createDummyEcfProfiles();
+			Set<ECFProfile> ecfProfiles = ecfService.createECFProfiles();
 			Survey ecfSurvey = SurveyCreator.createNewECFSurvey(admin, objLang,
-			ecfService.createCompetencies(ecfProfiles), ecfProfiles);
+			ecfService.createECFCompetencies(ecfProfiles), ecfProfiles);
 			surveyService.add(ecfSurvey, -1);
 			surveyService.publish(ecfSurvey, -1, -1, false, -1, false, false);
 

@@ -651,7 +651,9 @@ public class RunnerController extends BasicController {
 			ModelAndView result = new ModelAndView("thanks", "uniqueCode", answerSet.getUniqueCode());
 			
 			if (survey.getIsECF()) {
-				result.addObject("ecfResults","example");
+				result.addObject("isECF", true);
+				Set<ECFProfile> profiles = this.ecfService.getECFProfiles(survey);
+				result.addObject("ecfProfiles", profiles);
 			}
 
 			if (survey.getIsOPC())
@@ -1995,6 +1997,9 @@ public class RunnerController extends BasicController {
 			}
 
 			if (survey.getIsECF()) {
+				result.addObject("isECF", true);
+				Set<ECFProfile> profiles = this.ecfService.getECFProfiles(survey);
+				result.addObject("ecfProfiles", profiles);
 				// compute results
 				result.addObject("ecfResults", "example");
 				result.addObject("contextpath", contextpath);

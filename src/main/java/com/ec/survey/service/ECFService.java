@@ -1,18 +1,19 @@
 package com.ec.survey.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 
+import org.apache.log4j.Logger;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -38,77 +39,220 @@ import com.ec.survey.model.survey.ecf.ECFGlobalCompetencyResult;
 import com.ec.survey.model.survey.ecf.ECFGlobalResult;
 import com.ec.survey.model.survey.ecf.ECFIndividualCompetencyResult;
 import com.ec.survey.model.survey.ecf.ECFIndividualResult;
+import com.ec.survey.model.survey.ecf.ECFOrganizationalCompetencyResult;
+import com.ec.survey.model.survey.ecf.ECFOrganizationalResult;
+import com.ec.survey.model.survey.ecf.ECFProfileCompetencyResult;
+import com.ec.survey.model.survey.ecf.ECFProfileResult;
 
 @Service("ecfService")
 @Configurable
 public class ECFService extends BasicService {
-	
-	@Resource(name="sessionFactory")
+
+	private static final Logger logger = Logger.getLogger(ECFService.class);
+
+	@Resource(name = "sessionFactory")
 	private SessionFactory sessionFactory;
 
-	
-	public ECFGlobalResult getECFGlobalResult(Survey survey, SqlPagination sqlPagination) throws Exception {
-		return this.getECFGlobalResult(survey, sqlPagination, null);
-	}
-	/**
-	 * Returns the ECFGlobalResult for the given Survey, Pagination, and optional
-	 * EcfProfile
-	 */
-	public ECFGlobalResult getECFGlobalResult(Survey survey, SqlPagination sqlPagination, ECFProfile ecfProfile)
-			throws Exception {
+	public ECFOrganizationalResult getECFOrganizationalResult(Survey survey) throws Exception {
 		if (survey == null || !survey.getIsECF()) {
 			throw new IllegalArgumentException("survey needs to be ECF to parse ECF results");
 		}
 
-		ECFGlobalResult result = new ECFGlobalResult();
-		List<AnswerSet> answerSets = this.answerService.getAnswersFromReporting(survey, sqlPagination);
-		Integer countAnswers = this.reportingService.getCount(survey);
-		
-		if (ecfProfile != null) {
-			result.setProfileName(ecfProfile.getName());
+		ECFOrganizationalResult ecfOrganizationalResult = new ECFOrganizationalResult();
 
-			Map<ECFCompetency, Integer> competencyToExpectedScore = new HashMap<ECFCompetency, Integer>();
-			for (ECFExpectedScore expectedScore : ecfProfile.getECFExpectedScores()) {
-				ECFCompetency competency = expectedScore.getECFExpectedScoreToProfileEid().getECFCompetency();
-				if (competency == null) {
-					throw new ECFException("A score must be linked to a competency");
+		Map<ECFProfile, Map<ECFCompetency, Integer>> profilesToExpectedScores = getProfilesExpectedScores(
+				this.getECFProfiles(survey));
+		Map<ECFCompetency, Integer> competencyToMaxTarget = new HashMap<>();
+
+		Map<ECFCompetency, Integer> competencyToTotalTarget = new HashMap<>();
+		Map<ECFCompetency, Integer> competencyToNumberTarget = new HashMap<>();
+
+		for (ECFProfile profile : profilesToExpectedScores.keySet()) {
+			Map<ECFCompetency, Integer> competencyToTarget = profilesToExpectedScores.get(profile);
+			for (ECFCompetency competency : competencyToTarget.keySet()) {
+				Integer target = competencyToTarget.get(competency);
+
+				if (competencyToTotalTarget.containsKey(competency)) {
+					Integer previousTotalTarget = competencyToTotalTarget.get(competency);
+					competencyToTotalTarget.put(competency, previousTotalTarget + target);
+				} else {
+					competencyToTotalTarget.put(competency, target);
 				}
-				competencyToExpectedScore.put(competency, expectedScore.getScore());
-			}
 
-			for (Entry<ECFCompetency, Integer> competencyToScore : competencyToExpectedScore.entrySet()) {
-				ECFGlobalCompetencyResult oneResult = getECFGlobalCompetencyResult(survey, answerSets,
-						competencyToScore);
-				result.addIndividualResults(oneResult);
-			}
+				if (competencyToNumberTarget.containsKey(competency)) {
+					Integer previousNumberTarget = competencyToNumberTarget.get(competency);
+					competencyToNumberTarget.put(competency, previousNumberTarget + 1);
+				} else {
+					competencyToNumberTarget.put(competency, 1);
+				}
 
-		} else {
-			result = this.getECFGlobalResultWithoutProfile(survey, answerSets);
+				if (competencyToMaxTarget.containsKey(competency)) {
+					Integer previousMaxTarget = competencyToMaxTarget.get(competency);
+					if (target > previousMaxTarget) {
+						competencyToMaxTarget.put(competency, target);
+					}
+				} else {
+					competencyToMaxTarget.put(competency, target);
+				}
+			}
 		}
-		
-		result.setPageNumber(sqlPagination.getCurrentPage());
-		result.setPageSize(sqlPagination.getRowsPerPage());
-		result.setNumberOfPages((countAnswers / result.getPageSize())+1);
-		
-		logger.info("count " + countAnswers);
-		logger.info("pageSize " + result.getPageSize());
-		
-		result.setIndividualResults(result.getIndividualResults().stream().sorted().collect(Collectors.toList()));
 
-		return result;
+		List<AnswerSet> answerSets = this.answerService.getAllAnswers(survey.getId(), null);
+		Map<ECFCompetency, List<Integer>> competenciesToScores = this.getCompetenciesToScores(survey, answerSets);
+
+		for (ECFCompetency competency : competencyToMaxTarget.keySet()) {
+			ECFOrganizationalCompetencyResult competencyResult = new ECFOrganizationalCompetencyResult();
+			competencyResult.setCompetencyName(competency.getName());
+
+			competencyResult.setCompetencyMaxTarget(competencyToMaxTarget.get(competency));
+
+			Integer totalTarget = competencyToTotalTarget.get(competency);
+			Integer numberOfTargets = competencyToNumberTarget.get(competency);
+			Float averageTarget = this.roundedAverage(totalTarget, numberOfTargets);
+			competencyResult.setCompetencyAverageTarget(averageTarget);
+
+			List<Integer> competencyScores = competenciesToScores.get(competency);
+			if (competencyScores.size() > 0) {
+				Integer competencyMaxScore = competencyScores.stream().mapToInt(i -> i).max()
+						.orElseThrow(NoSuchElementException::new);
+				competencyResult.setCompetencyMaxScore(competencyMaxScore);
+
+				Integer competencySumScores = competencyScores.stream().reduce(0, Integer::sum);
+				Float competencyAverageScore = this.roundedAverage(competencySumScores, competencyScores.size());
+				competencyResult.setCompetencyAverageScore(competencyAverageScore);
+			}
+
+			ecfOrganizationalResult.addCompetencyResult(competencyResult);
+		}
+
+		ecfOrganizationalResult.setCompetencyResults(
+				ecfOrganizationalResult.getCompetencyResults().stream().sorted().collect(Collectors.toList()));
+
+		return ecfOrganizationalResult;
 	}
 
-	public ECFGlobalResult getECFGlobalResultWithoutProfile(Survey survey, List<AnswerSet> answerSets)
+	public ECFProfileResult getECFProfileResult(Survey survey) throws Exception {
+		return this.getECFProfileResult(survey, null);
+	}
+
+	/**
+	 * Returns the ECFProfileResult for the given Survey, Pagination, and optional
+	 * EcfProfile
+	 */
+	public ECFProfileResult getECFProfileResult(Survey survey, ECFProfile ecfProfile) throws Exception {
+		if (survey == null || !survey.getIsECF()) {
+			throw new IllegalArgumentException("survey needs to be ECF to parse ECF results");
+		}
+
+		ECFProfileResult ecfProfileResult = null;
+
+		List<AnswerSet> answerSets = this.answerService.getAllAnswers(survey.getId(), null);
+
+		if (ecfProfile != null) {
+			List<AnswerSet> profileFilteredAnswerSets = new ArrayList<>();
+			for (AnswerSet answer : answerSets) {
+				if (this.getECFProfile(survey, answer).equals(ecfProfile)) {
+					profileFilteredAnswerSets.add(answer);
+				}
+			}
+			answerSets = profileFilteredAnswerSets;
+
+			Map<ECFCompetency, Integer> competencyToExpectedScore = this.getProfileExpectedScores(ecfProfile);
+
+			ecfProfileResult = this.getECFProfileCompetencyResult(survey, answerSets, competencyToExpectedScore,
+					ecfProfile.getName());
+		} else {
+			ecfProfileResult = this.getECFProfileCompetencyResult(survey, answerSets);
+		}
+
+		ecfProfileResult.setCompetencyResults(
+				ecfProfileResult.getCompetencyResults().stream().sorted().collect(Collectors.toList()));
+		return ecfProfileResult;
+	}
+
+	public ECFProfileResult getECFProfileCompetencyResult(Survey survey, List<AnswerSet> answerSets)
 			throws ECFException {
-		Map<String, List<Integer>> competencyToScores = new HashMap<>();
+		return this.getECFProfileCompetencyResult(survey, answerSets, new HashMap<>(), null);
+	}
+
+	private ECFProfileResult getECFProfileCompetencyResult(Survey survey, List<AnswerSet> answerSets,
+			Map<ECFCompetency, Integer> competencyToTargetScore, String profileName) throws ECFException {
+		ECFProfileResult profileResult = new ECFProfileResult();
+		profileResult.setProfileName(profileName);
+		profileResult.setNumberOfAnswers(answerSets.size());
+
+		Map<ECFCompetency, List<Integer>> competenciesToScores = this.getCompetenciesToScores(survey, answerSets);
+		for (ECFCompetency competency : competenciesToScores.keySet()) {
+			ECFProfileCompetencyResult profileCompetencyResult = new ECFProfileCompetencyResult();
+			profileCompetencyResult.setCompetencyName(competency.getName());
+			List<Integer> scores = competenciesToScores.get(competency);
+
+			if (scores.size() != 0) {
+				Integer maxScore = 0;
+				Integer totalScore = 0;
+				for (Integer score : scores) {
+					if (score > maxScore) {
+						maxScore = score;
+					}
+					totalScore = totalScore + score;
+				}
+
+				float averageScore = (float) Math.round((totalScore.floatValue() / scores.size()) * 10) / 10;
+				profileCompetencyResult.setCompetencyAverageScore(averageScore);
+				profileCompetencyResult.setCompetencyMaxScore(maxScore);
+			}
+			profileCompetencyResult.setCompetencyTargetScore(competencyToTargetScore.get(competency));
+
+			profileResult.addIndividualResults(profileCompetencyResult);
+		}
+		return profileResult;
+	}
+
+	private Map<ECFProfile, Map<ECFCompetency, Integer>> getProfilesExpectedScores(Set<ECFProfile> profiles)
+			throws ECFException {
+		if (profiles == null) {
+			throw new IllegalArgumentException("profiles cannot be null");
+		}
+
+		Map<ECFProfile, Map<ECFCompetency, Integer>> profileToCompetencyToExpectedScore = new HashMap<>();
+
+		for (ECFProfile profile : profiles) {
+			profileToCompetencyToExpectedScore.put(profile, this.getProfileExpectedScores(profile));
+		}
+
+		return profileToCompetencyToExpectedScore;
+	}
+
+	private Map<ECFCompetency, Integer> getProfileExpectedScores(ECFProfile ecfProfile) throws ECFException {
+		if (ecfProfile == null) {
+			throw new IllegalArgumentException("survey needs to be ECF to parse ECF results");
+		}
+		Map<ECFCompetency, Integer> competencyToExpectedScore = new HashMap<>();
+		for (ECFExpectedScore expectedScore : ecfProfile.getECFExpectedScores()) {
+			ECFCompetency competency = expectedScore.getECFExpectedScoreToProfileEid().getECFCompetency();
+			if (competency == null) {
+				throw new ECFException("A score must be linked to a competency");
+			}
+			competencyToExpectedScore.put(competency, expectedScore.getScore());
+		}
+		return competencyToExpectedScore;
+	}
+
+	/**
+	 * Returns the mapping between the competencies and the scores the answerSets
+	 * could get
+	 */
+	private Map<ECFCompetency, List<Integer>> getCompetenciesToScores(Survey survey, List<AnswerSet> answerSets)
+			throws ECFException {
+		Map<ECFCompetency, List<Integer>> competencyToScores = new HashMap<>();
 		Set<Question> ecfQuestions = new HashSet<>();
 
+		// Target the competency questions
 		for (Element element : survey.getElements()) {
 			if (element instanceof Question) {
 				Question question = (Question) element;
-				if (question instanceof SingleChoiceQuestion && question.getEcfCompetency() != null
-						&& question.getEcfCompetency().getName() != null) {
-					competencyToScores.put(question.getEcfCompetency().getName(), new ArrayList<>());
+				if (question instanceof SingleChoiceQuestion && question.getEcfCompetency() != null) {
+					competencyToScores.put(question.getEcfCompetency(), new ArrayList<>());
 					ecfQuestions.add(question);
 				}
 			}
@@ -117,8 +261,8 @@ public class ECFService extends BasicService {
 		// For each individual
 		for (int i = 0; i < answerSets.size(); i++) {
 			AnswerSet answerSet = answerSets.get(i);
-			Map<String, Integer> competencyToNumberOfAnswers = new HashMap<>();
-			Map<String, Integer> competencyToTotalAnsweredNumbers = new HashMap<>();
+			Map<ECFCompetency, Integer> competencyToNumberOfAnswers = new HashMap<>();
+			Map<ECFCompetency, Integer> competencyToTotalAnsweredNumbers = new HashMap<>();
 
 			// Pass through his answers
 			for (Question question : ecfQuestions) {
@@ -132,113 +276,111 @@ public class ECFService extends BasicService {
 				if (answeredPossibleAnswer != null) {
 					char lastCharInShortName = answeredPossibleAnswer.getShortname()
 							.charAt(answeredPossibleAnswer.getShortname().length() - 1);
-					Integer answeredNumber = Integer.parseInt(String.valueOf(lastCharInShortName));
+					Integer answeredNumber = answeredPossibleAnswer.getEcfScore();
 					if (answeredNumber > 4 || answeredNumber < 0) {
 						throw new ECFException("An ECF possible answer cannot be over 4");
 					}
 
-					String questionCompetencyName = question.getEcfCompetency().getName();
+					ECFCompetency questionCompetency = question.getEcfCompetency();
 
-					if (questionCompetencyName == null) {
-						throw new ECFException("An ECF Competency must have a name");
-					}
-					if (competencyToNumberOfAnswers.containsKey(questionCompetencyName)) {
-						Integer numberOfQuestions = competencyToNumberOfAnswers.get(questionCompetencyName);
-						competencyToNumberOfAnswers.put(questionCompetencyName, numberOfQuestions + 1);
-
-						Integer previousTotal = competencyToTotalAnsweredNumbers.get(questionCompetencyName);
-						competencyToTotalAnsweredNumbers.put(questionCompetencyName,  previousTotal + answeredNumber);
+					if (competencyToTotalAnsweredNumbers.containsKey(questionCompetency)) {
+						Integer previousNumber = competencyToTotalAnsweredNumbers.get(questionCompetency);
+						competencyToTotalAnsweredNumbers.put(questionCompetency, previousNumber + answeredNumber);
 					} else {
-						competencyToNumberOfAnswers.put(questionCompetencyName, 1);
-						competencyToTotalAnsweredNumbers.put(questionCompetencyName, answeredNumber);
+						competencyToTotalAnsweredNumbers.put(questionCompetency, answeredNumber);
+					}
+
+					if (competencyToNumberOfAnswers.containsKey(question.getEcfCompetency())) {
+						Integer previousNumber = competencyToNumberOfAnswers.get(question.getEcfCompetency());
+						competencyToNumberOfAnswers.put(questionCompetency, previousNumber + 1);
+					} else {
+						competencyToNumberOfAnswers.put(questionCompetency, 1);
 					}
 				}
 			}
-
-			for (String questionCompetencyName: competencyToTotalAnsweredNumbers.keySet()) {
-				Integer total = competencyToTotalAnsweredNumbers.get(questionCompetencyName);
-				Integer numberOfQuestions = competencyToNumberOfAnswers.get(questionCompetencyName);
-				competencyToScores.get(questionCompetencyName).add(total / numberOfQuestions);
+			for (ECFCompetency competency : competencyToNumberOfAnswers.keySet()) {
+				Integer numberOfAnswers = competencyToNumberOfAnswers.get(competency);
+				Integer totalNumber = competencyToTotalAnsweredNumbers.get(competency);
+				List<Integer> listOfScores = competencyToScores.get(competency);
+				listOfScores.add(totalNumber / numberOfAnswers);
+				competencyToScores.put(competency, listOfScores);
 			}
+			// next individual
 		}
-
-
-		ECFGlobalResult globalResult = new ECFGlobalResult();
-		List<ECFGlobalCompetencyResult> globalCompetencyResults = new ArrayList<>();
-		for (String competencyName : competencyToScores.keySet()) {
-			ECFGlobalCompetencyResult competencyResult = new ECFGlobalCompetencyResult();
-			competencyResult.setCompetencyName(competencyName);
-			competencyResult.setCompetencyScores(competencyToScores.get(competencyName));
-			globalCompetencyResults.add(competencyResult);
-		}
-		globalResult.setIndividualResults(globalCompetencyResults);
-		return globalResult;
+		return competencyToScores;
 	}
 
-	public ECFGlobalCompetencyResult getECFGlobalCompetencyResult(Survey survey, List<AnswerSet> answerSets,
-			Entry<ECFCompetency, Integer> competencyToScore) throws ECFException {
-		// Find the questions for this competency
-		List<Question> listOfRelevantQuestions = new ArrayList<>();
-		for (Element element : survey.getElements()) {
-			if (element instanceof Question) {
-				Question question = (Question) element;
-				if (question instanceof SingleChoiceQuestion && question.getEcfCompetency() != null
-						&& question.getEcfCompetency().equals(competencyToScore.getKey())) {
-					listOfRelevantQuestions.add(question);
-				}
-			}
-		}
-
-		// Go through the answerSets and set up all the answers for this competency
-		ECFGlobalCompetencyResult ecfGlobalCompetencyResult = new ECFGlobalCompetencyResult();
-		ecfGlobalCompetencyResult.setCompetencyName(competencyToScore.getKey().getName());
-		ecfGlobalCompetencyResult.setCompetencyTargetScore(competencyToScore.getValue());
-		for (AnswerSet answerSet : answerSets) {
-			ECFIndividualCompetencyResult competencyResult = new ECFIndividualCompetencyResult();
-			competencyResult.setCompetencyName(competencyToScore.getKey().getName());
-			competencyResult.setCompetencyTargetScore(competencyToScore.getValue());
-
-			boolean answeredToThisCompetency = false;
-			for (Question question : listOfRelevantQuestions) {
-				List<Answer> answers = answerSet.getAnswers(question.getId(), question.getUniqueId());
-				if (answers.size() == 0)
-					continue;
-				Answer answer = answers.get(0);
-				SingleChoiceQuestion choiceQuestion = (SingleChoiceQuestion) question;
-				PossibleAnswer answeredPossibleAnswer = choiceQuestion
-						.getPossibleAnswerByUniqueId(answer.getPossibleAnswerUniqueId());
-				if (answeredPossibleAnswer != null) {
-					char lastCharInShortName = answeredPossibleAnswer.getShortname()
-							.charAt(answeredPossibleAnswer.getShortname().length() - 1);
-					Integer answeredNumber = Integer.parseInt(String.valueOf(lastCharInShortName));
-					if (answeredNumber > 4 || answeredNumber < 0) {
-						throw new ECFException("An ECF possible answer cannot be over 4");
-					}
-					competencyResult.addCompetencyScore(answeredNumber);
-					answeredToThisCompetency = true;
-				}
-			}
-
-			if (answeredToThisCompetency) {
-				ecfGlobalCompetencyResult.addCompetencyScore(competencyResult.getCompetencyScore());
-				ecfGlobalCompetencyResult.addCompetencyScoreGap(competencyResult.getCompetencyScoreGap());
-			}
-
-		}
-
-		return ecfGlobalCompetencyResult;
-
+	public ECFGlobalResult getECFGlobalResult(Survey survey, SqlPagination sqlPagination) throws Exception {
+		return this.getECFGlobalResult(survey, sqlPagination, null);
 	}
 
 	/**
-	 * 1/ Finds the answerSet profile. 2/ Then calculates the GAPS between this
-	 * profile and the actual score
+	 * Returns the ECFGlobalResult for the given Survey, Pagination, and optional
+	 * EcfProfile
+	 */
+	public ECFGlobalResult getECFGlobalResult(Survey survey, SqlPagination sqlPagination, ECFProfile ecfProfile)
+			throws Exception {
+		if (survey == null || !survey.getIsECF()) {
+			throw new IllegalArgumentException("survey needs to be ECF to parse ECF results");
+		}
+
+		ECFGlobalResult result = new ECFGlobalResult();
+		List<AnswerSet> answerSets = this.answerService.getAnswersFromReporting(survey, sqlPagination);
+		Integer countAnswers = this.reportingService.getCount(survey);
+
+		Map<ECFCompetency, Integer> competencyToExpectedScore = new HashMap<ECFCompetency, Integer>();
+
+		if (ecfProfile != null) {
+			result.setProfileName(ecfProfile.getName());
+			competencyToExpectedScore = this.getProfileExpectedScores(ecfProfile);
+		}
+
+		Map<ECFCompetency, List<Integer>> competenciesToScores = this.getCompetenciesToScores(survey, answerSets);
+
+		for (ECFCompetency competency : competenciesToScores.keySet()) {
+			List<Integer> competencyScores = competenciesToScores.get(competency);
+
+			ECFGlobalCompetencyResult globalCompetencyResult = new ECFGlobalCompetencyResult();
+			globalCompetencyResult.setCompetencyName(competency.getName());
+			globalCompetencyResult.setCompetencyScores(competencyScores);
+
+			if (competencyToExpectedScore.containsKey(competency)) {
+				Integer targetScore = competencyToExpectedScore.get(competency);
+				globalCompetencyResult.setCompetencyTargetScore(targetScore);
+
+				for (Integer competencyScore : competencyScores) {
+					globalCompetencyResult.addCompetencyScoreGap(competencyScore - targetScore);
+					;
+				}
+			}
+			result.addIndividualResults(globalCompetencyResult);
+		}
+
+		result.setPageNumber(sqlPagination.getCurrentPage());
+		result.setPageSize(sqlPagination.getRowsPerPage());
+		result.setNumberOfPages((countAnswers / result.getPageSize()) + 1);
+		result.setNumberOfResults(countAnswers);
+
+		result.setIndividualResults(result.getIndividualResults().stream().sorted().collect(Collectors.toList()));
+
+		return result;
+	}
+
+	public ECFIndividualResult getECFIndividualResult(Survey survey, AnswerSet answerSet) throws ECFException {
+		return this.getECFIndividualResult(survey, answerSet, null);
+	}
+
+	/**
+	 * Returns the individual result for the given answerSet compared to the
+	 * expected scores of the profile Or to the profile specified in the AnswerSet
+	 * itself.
 	 * 
 	 * @throws ECFException
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Transactional
-	public ECFIndividualResult getECFIndividualResult(Survey survey, AnswerSet answerSet) throws ECFException {
+	public ECFIndividualResult getECFIndividualResult(Survey survey, AnswerSet answerSet, ECFProfile profile)
+			throws ECFException {
 		if (survey == null || !survey.getIsECF()) {
 			throw new IllegalArgumentException("survey needs to be ECF to parse ECF results");
 		}
@@ -246,120 +388,25 @@ public class ECFService extends BasicService {
 			throw new IllegalArgumentException("answer set is not null");
 		}
 
-		ECFIndividualResult ecfResult = new ECFIndividualResult();
-		ECFProfile answererProfile = getAnswerSetProfile(survey, answerSet);
-		ecfResult.setProfileName(answererProfile.getName());
+		ECFIndividualResult ecfIndividualResult = new ECFIndividualResult();
+		ECFProfile answererProfile = profile != null ? profile : getECFProfile(survey, answerSet);
+		ecfIndividualResult.setProfileName(answererProfile.getName());
+		ecfIndividualResult.setProfileUUID(answererProfile.getProfileUid());
 
-		HashMap<String, ECFIndividualCompetencyResult> competencyNameToResult = new HashMap<>();
+		List<AnswerSet> answerSets = Arrays.asList(answerSet);
+		Map<ECFCompetency, List<Integer>> competenciesToScores = this.getCompetenciesToScores(survey, answerSets);
+		Map<ECFCompetency, Integer> competenciesToExpectedScores = this.getProfileExpectedScores(answererProfile);
 
-		for (Element element : survey.getElements()) {
-			if (element instanceof Question) {
-				Question question = (Question) element;
-				if (question instanceof SingleChoiceQuestion && question.getEcfCompetency() != null
-						&& question.getEcfCompetency().getName() != null) {
-
-					List<Answer> answers = answerSet.getAnswers(question.getId(), question.getUniqueId());
-					if (answers.size() == 0)
-						continue;
-					Answer answer = answers.get(0);
-					SingleChoiceQuestion choiceQuestion = (SingleChoiceQuestion) question;
-					ECFIndividualCompetencyResult ecfCompetencyResult = null;
-
-					if (competencyNameToResult.containsKey(question.getEcfCompetency().getName())) {
-						ECFIndividualCompetencyResult previousResultSameQuestion = competencyNameToResult
-								.get(question.getEcfCompetency().getName());
-						ECFIndividualCompetencyResult newResult = this.getAnswerCompetencyResult(choiceQuestion, answer,
-								previousResultSameQuestion);
-						competencyNameToResult.put(question.getEcfCompetency().getName(), newResult);
-					} else {
-						ecfCompetencyResult = this.getAnswerCompetencyResult(choiceQuestion, answer, answererProfile);
-						competencyNameToResult.put(question.getEcfCompetency().getName(), ecfCompetencyResult);
-					}
-				}
-			}
+		for (ECFCompetency competency : competenciesToScores.keySet()) {
+			ECFIndividualCompetencyResult competencyResult = new ECFIndividualCompetencyResult();
+			competencyResult.setCompetencyName(competency.getName());
+			competencyResult.setCompetencyTargetScore(competenciesToExpectedScores.get(competency));
+			competencyResult.setCompetencyScore(competenciesToScores.get(competency).get(0));
+			ecfIndividualResult.addCompetencyResult(competencyResult);
 		}
-		ecfResult.setCompetencyResultList(
-				competencyNameToResult.values().stream().sorted().collect(Collectors.toList()));
-		return ecfResult;
-	}
-
-	/**
-	 * Calculates the ECFCompetencyResult for the singleChoiceQuestion's answer,
-	 * while taking into account a previous result for a question on the same
-	 * ECFCompetency
-	 * 
-	 * @throws ECFException if an answer is not between 0 and 4 OR <br>
-	 *                      if the answer does not correspond to the question
-	 */
-	private ECFIndividualCompetencyResult getAnswerCompetencyResult(SingleChoiceQuestion singleChoiceQuestion,
-			Answer answer, ECFIndividualCompetencyResult previousResultSameQuestion) throws ECFException {
-		PossibleAnswer answeredPossibleAnswer = singleChoiceQuestion
-				.getPossibleAnswerByUniqueId(answer.getPossibleAnswerUniqueId());
-		if (answeredPossibleAnswer != null) {
-			char lastCharInShortName = answeredPossibleAnswer.getShortname()
-					.charAt(answeredPossibleAnswer.getShortname().length() - 1);
-
-			Integer answeredNumber = Integer.parseInt(String.valueOf(lastCharInShortName));
-
-			if (answeredNumber > 4 || answeredNumber < 0) {
-				throw new ECFException("An ECF possible answer cannot be over 4");
-			}
-
-			previousResultSameQuestion.addCompetencyScore(answeredNumber);
-		} else {
-			throw new ECFException("No possible answer for this unique id");
-		}
-		return previousResultSameQuestion;
-	}
-
-	/**
-	 * Calculates the ECFCompetencyResult for the singleChoiceQuestion's answer and
-	 * for the selected profile
-	 * 
-	 * @throws ECFException if an expected score cannot be found for the
-	 *                      singleChoiceQuestion's competency and the
-	 *                      answererProfile OR <br>
-	 *                      if an answer is not between 0 and 4 OR <br>
-	 *                      if the answer does not correspond to the question
-	 */
-	private ECFIndividualCompetencyResult getAnswerCompetencyResult(SingleChoiceQuestion singleChoiceQuestion,
-			Answer answer, ECFProfile answererProfile) throws ECFException {
-		ECFIndividualCompetencyResult ecfCompetencyResult = new ECFIndividualCompetencyResult();
-
-		ECFCompetency ecfCompetency = singleChoiceQuestion.getEcfCompetency();
-		ecfCompetencyResult.setCompetencyName(ecfCompetency.getName());
-
-		Integer actualExpectedScore = null;
-		for (ECFExpectedScore expectedScore : ecfCompetency.getECFExpectedScores()) {
-			if (expectedScore.getECFExpectedScoreToProfileEid().getECFProfile().equals(answererProfile)) {
-				actualExpectedScore = expectedScore.getScore();
-			}
-		}
-
-		if (actualExpectedScore == null) {
-			throw new ECFException("Expected score not found for this profile-competency combination");
-		}
-
-		ecfCompetencyResult.setCompetencyTargetScore(actualExpectedScore);
-
-		PossibleAnswer answeredPossibleAnswer = singleChoiceQuestion
-				.getPossibleAnswerByUniqueId(answer.getPossibleAnswerUniqueId());
-		if (answeredPossibleAnswer != null) {
-			char lastCharInShortName = answeredPossibleAnswer.getShortname()
-					.charAt(answeredPossibleAnswer.getShortname().length() - 1);
-
-			Integer answeredNumber = Integer.parseInt(String.valueOf(lastCharInShortName));
-
-			if (answeredNumber > 4 || answeredNumber < 0) {
-				throw new ECFException("An ECF possible answer cannot be over 4");
-			}
-
-			ecfCompetencyResult.addCompetencyScore(answeredNumber);
-		} else {
-			throw new ECFException("No possible answer for this unique id");
-		}
-
-		return ecfCompetencyResult;
+		ecfIndividualResult.setCompetencyResultList(
+				ecfIndividualResult.getCompetencyResultList().stream().sorted().collect(Collectors.toList()));
+		return ecfIndividualResult;
 	}
 
 	/**
@@ -368,7 +415,7 @@ public class ECFService extends BasicService {
 	 * 
 	 * @throws ECFException if no ECFProfile could be found answered by the user
 	 */
-	private ECFProfile getAnswerSetProfile(Survey survey, AnswerSet answerSet) throws ECFException {
+	private ECFProfile getECFProfile(Survey survey, AnswerSet answerSet) throws ECFException {
 		for (Element element : survey.getElements()) {
 			if (element instanceof Question) {
 				Question question = (Question) element;
@@ -395,9 +442,9 @@ public class ECFService extends BasicService {
 	 * Creates the ECF profiles defined for the matrix
 	 */
 	@Transactional
-	public List<ECFProfile> createDummyEcfProfiles() {
+	public Set<ECFProfile> createECFProfiles() {
 		Session session = sessionFactory.getCurrentSession();
-		List<ECFProfile> ecfProfiles = new LinkedList<ECFProfile>();
+		Set<ECFProfile> ecfProfiles = new HashSet<ECFProfile>();
 
 		// TODO: configuration for this
 		String[] profiles = new String[] { "Procurement support officer", "Standalone public buyer",
@@ -416,9 +463,9 @@ public class ECFService extends BasicService {
 	 * Creates the ECF competencies defined for the matrix
 	 */
 	@Transactional
-	public List<ECFCompetency> createCompetencies(List<ECFProfile> ecfProfiles) {
+	public Set<ECFCompetency> createECFCompetencies(Set<ECFProfile> ecfProfiles) {
 		Session session = sessionFactory.getCurrentSession();
-		List<ECFCompetency> ecfCompetencies = new LinkedList<ECFCompetency>();
+		Set<ECFCompetency> ecfCompetencies = new HashSet<ECFCompetency>();
 
 		// Iterate on the competencies
 		for (int i = 0; i < 5; i++) {
@@ -444,12 +491,12 @@ public class ECFService extends BasicService {
 		}
 		return ecfCompetencies;
 	}
-	
+
 	public Set<ECFProfile> getECFProfiles(Survey ecfSurvey) {
 		if (ecfSurvey == null || !ecfSurvey.getIsECF()) {
 			throw new IllegalArgumentException("survey needs to be ECF to get its profile");
 		}
-		
+
 		Set<ECFProfile> profileSet = new HashSet<>();
 		for (Element element : ecfSurvey.getElementsRecursive(true)) {
 			if (element instanceof PossibleAnswer) {
@@ -459,7 +506,7 @@ public class ECFService extends BasicService {
 				}
 			}
 		}
-		
+
 		return profileSet;
 	}
 
@@ -516,10 +563,6 @@ public class ECFService extends BasicService {
 			}
 		}
 
-		logger.info("There are " + oldECFCompetencyToNew.size() + " old competencies");
-		logger.info("There are " + oldECFProfileToNew.size() + " old profiles");
-		logger.info("There are " + encounteredScores.size() + " old scores");
-
 		for (ECFExpectedScore score : encounteredScores) {
 			ECFCompetency oldScoreCompetency = score.getECFExpectedScoreToProfileEid().getECFCompetency();
 			ECFProfile oldScoreProfile = score.getECFExpectedScoreToProfileEid().getECFProfile();
@@ -545,18 +588,22 @@ public class ECFService extends BasicService {
 		return alreadyCopiedSurvey;
 
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Transactional
-	public ECFProfile getProfileByUUID(final String profileUid) {
+	public ECFProfile getECFProfileByUUID(final String profileUid) {
 		Session session = sessionFactory.getCurrentSession();
-		
+
 		String hql = "FROM ECFProfile E WHERE E.profileUid = :profileUid";
 		Query query = session.createQuery(hql);
 		query.setParameter("profileUid", profileUid);
-		
+
 		List<ECFProfile> result = query.list();
 		return result.isEmpty() ? null : result.get(0);
+	}
+
+	private float roundedAverage(Integer totalScore, Integer numberOfScores) {
+		return (float) Math.round((totalScore.floatValue() / numberOfScores) * 10) / 10;
 	}
 
 }

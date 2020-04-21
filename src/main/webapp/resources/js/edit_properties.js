@@ -188,6 +188,7 @@ var ElementProperties = function() {
 	
 	this.showProperties = function(e, event, doubleclick)
 	{			
+		console.log("THIS.SHOWPROPERTIES!!!");
 		var advancedOpen = $(".advancedtogglebutton").find(".glyphicon-minus-sign").length > 0;
 		
 		_actions.ElementSelected(false);
@@ -203,6 +204,7 @@ var ElementProperties = function() {
 		var id = $(e).attr("data-id");
 		var removeselection = false;
 		
+		// ACTIONS
 		if (!cntrlIsPressed && !shiftIsPressed && !$("#multiselectButton").hasClass("selected"))
 		{
 			$(".selectedquestion").removeClass("selectedquestion");
@@ -282,7 +284,8 @@ var ElementProperties = function() {
 			_actions.MoveUpEnabled(false);
 			_actions.MoveDownEnabled(false);
 		}
-				
+			
+		// GOING BACK TO CODE
 		if ($("#content").find(".selectedquestion").length == 1)
 		{
 			e = $("#content").find(".selectedquestion").first();
@@ -363,6 +366,12 @@ var ElementProperties = function() {
 				{
 					getQuizPropertiesRow();
 					getQuizPropertiesContent();
+				}
+				
+				if (isECF)
+				{
+					getECFPropertiesRow();
+					getECFPropertiesContent();
 				}
 			} else if ($(e).hasClass("multiplechoiceitem"))
 			{

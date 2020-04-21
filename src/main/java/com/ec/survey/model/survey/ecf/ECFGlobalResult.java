@@ -3,7 +3,6 @@ package com.ec.survey.model.survey.ecf;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -26,6 +25,9 @@ public class ECFGlobalResult {
     
     @JsonProperty("numberOfPages")
     private Integer numberOfPages;
+    
+    @JsonProperty("numberOfResults")
+    private Integer numberOfResults;
     
 	public String getProfileName() {
 		return profileName;
@@ -71,12 +73,20 @@ public class ECFGlobalResult {
 	public void setNumberOfPages(Integer numberOfPages) {
 		this.numberOfPages = numberOfPages;
 	}
+	
+	public Integer getNumberOfResults() {
+		return numberOfResults;
+	}
+
+	public void setNumberOfResults(Integer numberOfResults) {
+		this.numberOfResults = numberOfResults;
+	}
 
 	@Override
 	public String toString() {
 		return "ECFGlobalResult [profileName=" + profileName + ", individualResults=" + individualResults
-				+ ", pageNumber=" + pageNumber + ", pageSize=" + pageSize + ", numberOfPages=" + numberOfPages + "]";
+				+ ", pageNumber=" + pageNumber + ", pageSize=" + pageSize + ", numberOfPages=" + numberOfPages
+				+ ", numberOfResults=" + numberOfResults + "]";
 	}
-
 	
 }

@@ -4,7 +4,7 @@
 <html>
 <head>
 	<title>EUSurvey - <spring:message code="label.Results" /></title>
-	
+	<script type="text/javascript" src="${contextpath}/resources/js/Chart.min.js"></script>
 	<%@ include file="../includes.jsp" %>
 	
 	<link href="${contextpath}/resources/css/management.css" rel="stylesheet" type="text/css" />
@@ -362,18 +362,24 @@
 			{
 				case 'content':
 					hideECF();
+					hideECF2();
+					hideECF3();
 					hideStatisticsQuiz();
 					hideStatistics();
 					showContent();
 					break;
 				case 'statistics':
 					hideECF();
+					hideECF2();
+					hideECF3();
 					hideStatisticsQuiz();
 					hideContent();
 					showStatistics();
 					break;
 				case 'statistics-quiz':
 					hideECF();
+					hideECF2();
+					hideECF3();
 					hideStatistics();
 					hideContent();
 					showStatisticsQuiz();
@@ -382,7 +388,27 @@
 					hideStatisticsQuiz();
 					hideContent();
 					hideStatistics();
+					hideECF2();
+					hideECF3();
 					showECF();
+					break;
+					
+				case 'ecf2':
+					hideECF();
+					hideECF3();
+					hideStatistics();
+					hideContent();
+					hideStatistics();
+					showECF2();
+					break;
+				
+				case 'ecf3':
+					hideECF();
+					hideECF2();
+					hideStatistics();
+					hideContent();
+					hideStatistics();
+					showECF3();
 					break;
 			}
 			
@@ -490,6 +516,42 @@
 			$("#results-table").removeClass('hidden');
 			$("#ecf-results").addClass('hidden');
 			$("#results-ecf").removeClass("btn-primary").addClass("btn-default");
+		}
+		
+		function showECF2() {
+			console.log('showECF2()');
+			$("#results-table").addClass('hidden');
+			$("#results-ecf2").addClass("btn-primary");
+			$("#ecf-results2").removeClass('hidden');
+			
+			// Strange?
+			$("#results-charts").addClass('hidden');
+			$("#charts-export-buttons").addClass('hidden');
+		}
+		
+		function hideECF2() {
+			console.log('hideECF2');
+			$("#results-table").removeClass('hidden');
+			$("#ecf-results2").addClass('hidden');
+			$("#results-ecf2").removeClass("btn-primary").addClass("btn-default");
+		}
+		
+		function showECF3() {
+			console.log('showECF3()');
+			$("#results-table").addClass('hidden');
+			$("#results-ecf3").addClass("btn-primary");
+			$("#ecf-results3").removeClass('hidden');
+			
+			// Strange?
+			$("#results-charts").addClass('hidden');
+			$("#charts-export-buttons").addClass('hidden');
+		}
+		
+		function hideECF3() {
+			console.log('hideECF3');
+			$("#results-table").removeClass('hidden');
+			$("#ecf-results3").addClass('hidden');
+			$("#results-ecf3").removeClass("btn-primary").addClass("btn-default");
 		}
 		
 		var exportType;
@@ -816,6 +878,8 @@
 					</c:if>
 					<c:if test="${form.survey.isECF}">
 						<a id="results-ecf" class="btn btn-default btn-xs" onclick="switchTo('ecf');"><span class="glyphicon glyphicon-user" style="font-size: 19px; color: #333"></span></a>
+						<a id="results-ecf2" class="btn btn-default btn-xs" onclick="switchTo('ecf2');"><span class="glyphicon glyphicon-user" style="font-size: 19px; color: #333"></span></a>
+						<a id="results-ecf3" class="btn btn-default btn-xs" onclick="switchTo('ecf3');"><span class="glyphicon glyphicon-user" style="font-size: 19px; color: #333"></span></a>
 					</c:if>
 				</div>
 				
@@ -944,6 +1008,8 @@
 				<%@ include file="results-statistics-quiz.jsp" %>
 				<%@ include file="results-ajax.jsp" %>	
 				<%@ include file="results-ecf.jsp" %>
+				<%@ include file="results-ecf2.jsp" %>
+				<%@ include file="results-ecf3.jsp" %>
 			</div>
 		</div>
 

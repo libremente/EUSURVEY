@@ -1,15 +1,39 @@
 package com.ec.survey.controller;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.ModelAndView;
+import org.xhtmlrenderer.pdf.ITextRenderer;
+
+import com.ec.survey.exception.ECFException;
 import com.ec.survey.exception.ForbiddenURLException;
+import com.ec.survey.exception.InternalServerErrorException;
 import com.ec.survey.exception.InvalidURLException;
+import com.ec.survey.exception.NotFoundException;
 import com.ec.survey.model.AnswerSet;
 import com.ec.survey.model.Draft;
+import com.ec.survey.model.ECFProfile;
 import com.ec.survey.model.Form;
 import com.ec.survey.model.administration.GlobalPrivilege;
 import com.ec.survey.model.administration.LocalPrivilege;
 import com.ec.survey.model.administration.User;
 import com.ec.survey.model.survey.Element;
 import com.ec.survey.model.survey.Survey;
+import com.ec.survey.model.survey.ecf.ECFIndividualResult;
 import com.ec.survey.service.ValidCodesService;
 import com.ec.survey.tools.ConversionTools;
 import com.ec.survey.tools.NotAgreedToPsException;
@@ -276,8 +300,12 @@ public class ContributionController extends BasicController {
 					: answerSet.getDate();
 			model.addObject("submittedDate", ConversionTools.getFullString(submittedDate));
 			model.addObject("invitationToken", answerSet.getInvitationId());
-
-			if (!fromBackOffice) {
+			model.addObject("isEcf", answerSet.getSurvey().getIsECF());
+			model.addObject("theUniqueCode", answerSet.getUniqueCode());
+			model.addObject("surveyShortname", answerSet.getSurvey().getShortname());
+			
+			if (!fromBackOffice)
+			{
 				model.addObject("runnermode", true);
 			}
 
@@ -428,8 +456,34 @@ public class ContributionController extends BasicController {
 			return new ModelAndView("redirect:/errors/500.html");
 		}
 	}
+	
+	@RequestMapping(value = "/ecfResultJSON", method = { RequestMethod.GET, RequestMethod.HEAD })
+	public @ResponseBody ECFIndividualResult ecfResultJSON(HttpServletRequest request, Locale locale)
+	throws NotFoundException, InternalServerErrorException {
+		String answerSetIdOrNull = request.getParameter("answerSetId");
+		String profileUUIDOrNull = request.getParameter("profileUUID");
+		
+		if (answerSetIdOrNull == null) {
+			throw new NotFoundException();
+		}
+		AnswerSet answerSet = answerService.get(answerSetIdOrNull);
 
-	@RequestMapping(value = "/printcontribution", method = { RequestMethod.GET, RequestMethod.HEAD })
+		ECFIndividualResult ecfResult;
+		try {
+			if (profileUUIDOrNull != null && !profileUUIDOrNull.isEmpty()) {
+				ECFProfile profile = this.ecfService.getECFProfileByUUID(profileUUIDOrNull);
+				ecfResult = this.ecfService.getECFIndividualResult(answerSet.getSurvey(), answerSet, profile);
+			} else {
+				ecfResult = this.ecfService.getECFIndividualResult(answerSet.getSurvey(), answerSet);
+			}
+		} catch (ECFException e) {
+			throw new InternalServerErrorException(e);
+		}
+
+		return ecfResult;
+	}
+	
+	@RequestMapping(value = "/printcontribution", method = {RequestMethod.GET, RequestMethod.HEAD})
 	public ModelAndView print(HttpServletRequest request, Locale locale) {
 
 		String code = request.getParameter("code");
@@ -462,8 +516,9 @@ public class ContributionController extends BasicController {
 					ModelAndView model = new ModelAndView("contributions/print", "form", f);
 					model.addObject("answerSet", answerSet.getId());
 					model.addObject("code", code);
+					model.addObject("isEcf", answerSet.getSurvey().getIsECF());
 					java.util.Date submittedDate = answerSet.getUpdateDate() != null ? answerSet.getUpdateDate()
-							: answerSet.getDate();
+					: answerSet.getDate();
 					model.addObject("submittedDate", ConversionTools.getFullString(submittedDate));
 					model.addObject("print", true);
 					model.addObject("serverprefix", serverPrefix);

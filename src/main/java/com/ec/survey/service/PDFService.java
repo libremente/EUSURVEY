@@ -490,5 +490,43 @@ public class PDFService extends BasicService {
 
 		return null;
 	}
+	
+	public java.io.File createECFIndividualResult(Survey survey, String exportId) throws IOException {
+		String shortname = survey.getShortname();
+		logger.info("Starting PDF creation for results (ecf individual results) of survey " + shortname);
+		FileOutputStream os = null;
+		PDFRenderer renderer = null;
+		try {
+
+			java.io.File folder = fileService.getSurveyExportsFolder(survey.getUniqueId());
+			java.io.File target = new java.io.File(String.format("%s/ecfIndividualResult%s.pdf", folder.getPath(), UUID.randomUUID().toString()));
+
+			if (renderer == null) {
+				renderer = getRenderer();
+			}
+			if (renderer == null) {
+				throw new Exception("Not possible to obtain PDFRenderer from pool");
+			}
+			os = new FileOutputStream(target);
+			renderer.createPDF(pdfhost + survey.getShortname() + "/management/prepareECFIndividualResults/" + survey.getId() + "/" + exportId, os);
+
+			return target;
+		} catch (Exception ex) {
+			logger.error(String.format("PDF creation for survey %s could not be started.", shortname));
+			logger.error(ex.getLocalizedMessage(), ex);
+		} finally {
+			if (os != null)
+				os.close();
+			if (renderer != null)
+				try {
+					PDFRendererPoolFactory.getInstance(max, sessionService).checkIn(renderer);
+				} catch (Exception e) {
+					logger.error(e.getLocalizedMessage(), e);
+				}
+		}
+		
+		return null;
+
+	}
 
 }

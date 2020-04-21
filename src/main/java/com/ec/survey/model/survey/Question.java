@@ -126,7 +126,7 @@ public abstract class Question extends Element {
 		this.scoringItems = scoringItems;
 	}
 
-	@ManyToOne(cascade = CascadeType.ALL)
+	@ManyToOne
 	@JoinColumn(name="ECF_COMPETENCY", nullable = true)    
 	public ECFCompetency getEcfCompetency() {
 		return ecfCompetency;

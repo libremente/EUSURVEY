@@ -38,8 +38,14 @@
 				</c:choose>
 				
 				<%@ include file="../runner/runnercontentinnerpdf.jsp" %>	
+				<%@ include file="../ecfGraph.jsp" %>
 			</form:form>
 		
 		</div>
 		
 	</div>
+	<script>
+		var uniqueCode = "${theUniqueCode}";
+		var contextpath = "${contextpath}";
+		var surveyShortname = "${surveyShortname}";
+	</script>

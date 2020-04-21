@@ -22,7 +22,7 @@ public class SurveyCreator {
 	private static final Logger logger = Logger.getLogger(SurveyCreator.class);
 
 	public static Survey createNewECFSurvey(User owner, Language language,
-	 List<ECFCompetency> competencies, List<ECFProfile> profiles)  {
+	 Set<ECFCompetency> competencies, Set<ECFProfile> profiles)  {
 		logger.info("Creating the ECF survey");
 		logger.info("There are " + competencies.size() + " competencies");
 		logger.info("There are " + profiles.size() + " profiles");
@@ -91,6 +91,7 @@ public class SurveyCreator {
 					possibleAnswer.setPosition(i);
 					possibleAnswer.setShortname("answer." + i);
 					possibleAnswer.setTitle("Answer " + Integer.toString(i));
+					possibleAnswer.setEcfScore(i);
 					singleChoiceQuestion.getPossibleAnswers().add(possibleAnswer);
 				}
 				survey.getElements().add(singleChoiceQuestion);
