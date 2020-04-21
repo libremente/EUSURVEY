@@ -29,6 +29,7 @@ function toggleAdvancedProperties(button)
 
 function toggleQuizProperties(button)
 {
+	console.log("toggleQuizProperties(button)");
 	if ($(button).parent().find(".glyphicon-minus-sign").length > 0)
 	{
 		$(button).parent().find(".glyphicon-minus-sign").removeClass("glyphicon-minus-sign").addClass("glyphicon-plus-sign");
@@ -41,6 +42,7 @@ function toggleQuizProperties(button)
 
 function showHideElementProperties(span)
 {
+	console.log("showHideElementProperties(span)");
 	var tr = $(".properties").find("tr").first();
 	if ($(span).hasClass("glyphicon-chevron-down"))
 	{
@@ -57,6 +59,7 @@ function showHideElementProperties(span)
 var lastQuizPropertiesVisible = true;
 function showHideQuizProperties(span)
 {
+	console.log("showHideQuizProperties(span)");
 	var tr = $(span).closest("tr");
 	if ($(span).hasClass("glyphicon-chevron-down"))
 	{
@@ -76,6 +79,28 @@ function showHideQuizProperties(span)
 	}
 }
 
+function showHideECFProperties(span)
+{
+	console.log("showHideECFProperties(span)");
+	var tr = $(span).closest("tr");
+	if ($(span).hasClass("glyphicon-chevron-down"))
+	{
+		//lastQuizPropertiesVisible = false;
+		$(tr).nextAll().hide(400);
+		$(span).removeClass("glyphicon-chevron-down").addClass("glyphicon-chevron-right");
+	} else {
+		//lastQuizPropertiesVisible = true;
+		if ($(tr).next().find(".ecfquestioncheck").first().is(":checked"))
+		{
+			$(tr).nextAll().not(".hideme").show(400);
+		} else {
+			$(tr).next().show(400);
+		}		
+		
+		$(span).removeClass("glyphicon-chevron-right").addClass("glyphicon-chevron-down");
+	}
+}
+
 function getAdvancedPropertiesRow()
 {
 	var row = new PropertyRow();
@@ -85,8 +110,17 @@ function getAdvancedPropertiesRow()
 
 function getQuizPropertiesRow()
 {
+	console.log("getQuizPropertiesRow()");
 	var row = new PropertyRow();
 	row.Type("quiz");
+	_elementProperties.propertyRows.push(row);
+}
+
+function getECFPropertiesRow()
+{
+	console.log("getECFPropertiesRow!");
+	var row = new PropertyRow();
+	row.Type("ecf");
 	_elementProperties.propertyRows.push(row);
 }
 
@@ -105,6 +139,7 @@ function toggleRegistrationFormProperties(button)
 var idcounter = 1;
 function getTextPropertiesRow(label, content, usetinymce, unit)
 {
+	console.log(" getTextPropertiesRow(label, content, usetinymce, unit)");
 	var row = new PropertyRow();
 	row.Type("first");
 	row.Label(label);
@@ -177,6 +212,7 @@ function getTextPropertiesRow(label, content, usetinymce, unit)
 
 function getCleanArray(arr)
 {
+	console.log("getCleanArray(arr)");
 	var result = [];
 	for (var i = 0; i < arr.length; i++) {
 		if (arr[i] != null && arr[i].length > 0)
@@ -189,6 +225,7 @@ function getCleanArray(arr)
 
 function getVisibilityRow(multiselection)
 {
+	console.log("getVisibilityRow(multiselection)");
 	var label = "Visibility";
 	
 	var row = new PropertyRow();
@@ -323,8 +360,76 @@ function getVisibilityRow(multiselection)
 
 var quizanswersrow;
 
+function getECFPropertiesContent() {
+	console.log("getECFPropertiesContent()");
+	let selectedelement = $("#content").find(".selectedquestion").first();
+	let element = _elements[$(selectedelement).attr("data-id")];
+		
+	let row = new PropertyRow();
+	row.Element(element);
+	row.Type("first");
+	row.ContentType("ecfquestion");
+	row.Label("ECFProfileSelection");
+	row.LabelTitle(getPropertyLabel("ECFProfileSelection")); 
+	console.log(element.possibleAnswers()[0]);
+	/*console.log("typeof " + typeof element.possibleAnswers);
+	
+	console.log(element.possibleAnswers());
+	console.log("possibleAnswers = " + JSON.stringify(element.possibleAnswers()[0].scoring));
+	let selected = (element.possibleAnswers() != null && element.possibleAnswers().get(0) != null && element.possibleAnswers().get(0).ecfProfile() != null);
+	*/
+	let selected = false;
+	
+	row.Value(selected);
+	
+	_elementProperties.propertyRows.push(row);
+	
+	row = new PropertyRow();
+	row.Element(element);
+	row.Type("first");
+	row.ContentType("ecfquestion");
+	row.Label("ECFCompetencyQuestion");
+	row.LabelTitle(getPropertyLabel("ECFCompetencyQuestion")); 
+	selected = element.ecfCompetency() != null;
+	console.log(element.ecfCompetency());
+	row.Value(selected);
+	_elementProperties.propertyRows.push(row);
+	
+	
+	if (selected) {
+		row = new PropertyRow();
+		row.Element(element);
+		row.Type("first");
+		row.ContentType("ecfCompetencySelection");
+		row.Label("ECFSelectedCompetency");
+		row.LabelTitle(getPropertyLabel("ECFSelectedCompetency")); 
+		row.Value(element.ecfCompetency().name);
+		_elementProperties.propertyRows.push(row);
+		
+		
+		row = new PropertyRow();
+		row.Element(element);
+		row.Type("ecfAnswersToScores");
+		row.ContentType("ecfAnswersToScores");
+		row.Label("ECFSelectedCompetency");
+		row.LabelTitle(getPropertyLabel("ECFSelectedCompetency")); 
+		
+		
+		if (element.type === "SingleChoiceQuestion")
+		{
+			for (let i = 0; i < element.possibleAnswers().length; i++)
+			{
+				let pa = element.possibleAnswers()[i];
+				row.ContentItems.push(pa);
+			}
+		} 
+		_elementProperties.propertyRows.push(row);
+	}
+}
+
 function getQuizPropertiesContent()
 {
+	console.log("getQuizPropertiesContent()");
 	var selectedelement = $("#content").find(".selectedquestion").first();
 	var element = _elements[$(selectedelement).attr("data-id")];
 	
@@ -416,6 +521,7 @@ function getQuizPropertiesContent()
 
 function initQuizElements(element)
 {
+	console.log("initQuizElements(element)");
 	$(".scoringpointsanswer").each(function(){
 		var input = this;
 		$(this).spinner({ decimals:0, start:"", allowNull: true });
@@ -446,6 +552,7 @@ function initQuizElements(element)
 
 function checkQuizOtherValues()
 {
+	console.log("checkQuizOtherValues()");
 	var otherFound = $(".ruleValueType").find("option[value='other']:selected").length > 0;
 	
 	var val = $('input[name=scoring]:checked').last().val();
@@ -482,6 +589,7 @@ function getIntersect(arr1, arr2) {
 
 function getNumberPropertiesRow(label, value)
 {
+	console.log("getNumberPropertiesRow(label, value)");
 	var row = new PropertyRow();
 	row.Type("first");
 	row.Label(label);
@@ -518,6 +626,7 @@ function getNumberPropertiesRow(label, value)
 
 function getChoosePropertiesRow(label, content, multiple, edit, value, useRadioButtons)
 {
+	console.log("getChoosePropertiesRow(label, content, multiple, edit, value, useRadioButtons)");
 	var row = new PropertyRow();
 	row.Type("first");
 	row.Label(label);
@@ -628,6 +737,7 @@ function getChooseColor(label, value)
 
 function getCheckPropertiesRow(label, value)
 {
+	console.log("getCheckPropertiesRow(label, value)");
 	var row = new PropertyRow();
 	row.Type("first");
 	row.ContentType("checkbox");
@@ -641,6 +751,7 @@ function getCheckPropertiesRow(label, value)
 
 function getRegistrationFormRow(attrvalue, namevalue)
 {
+	console.log("getRegistrationFormRow(attrvalue, namevalue)");
 	var row = new PropertyRow();
 	row.Type("registration");
 	row.Value(attrvalue);
@@ -657,6 +768,7 @@ function getRegistrationFormRow(attrvalue, namevalue)
 
 function createDatePickerForEditor(instance, othervalue)
 {
+	console.log("createDatePickerForEditor(instance, othervalue)");
 	if (othervalue == "") othervalue = null;
 	
 	$(instance).addClass("datepicker").attr("placeholder", "DD/MM/YYYY").datepicker({
@@ -720,6 +832,7 @@ function createDatePickerForEditor(instance, othervalue)
 
 function getMinMaxPropertiesRow(label, min, max, valuemin, valuemax)
 {
+	console.log("getMinMaxPropertiesRow(label, min, max, valuemin, valuemax)");
 	var row = new PropertyRow();
 	row.Type("first");
 	row.Label(label);
@@ -785,6 +898,7 @@ function getMinMaxPropertiesRow(label, min, max, valuemin, valuemax)
 
 function getActionRow(label, l1, action, l2, action2)
 {
+	console.log("getActionRow(label, l1, action, l2, action2)");
 	var row = new PropertyRow();
 	row.Type("first");
 	row.ContentType("action");
@@ -833,6 +947,7 @@ function getActionRow(label, l1, action, l2, action2)
 
 function getUploadRow(label)
 {
+	console.log("getUploadRow(label)");
 	var row = new PropertyRow();
 	row.Type("first");
 	row.Label(label);
@@ -962,6 +1077,7 @@ function getUploadRow(label)
 
 function moveGalleryFile(uid, button, up, undo)
 {
+	console.log("moveGalleryFile(uid, button, up, undo)");
 	var id = $(_elementProperties.selectedelement).attr("data-id");
 	var element = _elements[id]
 	var row = $(button).closest("tr");
@@ -1002,6 +1118,7 @@ function moveGalleryFile(uid, button, up, undo)
 
 function deleteGalleryFile(uid, button, noundo)
 {
+	console.log("deleteGalleryFile(uid, button, noundo)");
 	var request = $.ajax({
 	  url: contextpath + "/noform/management/deleteFile",
 	  data: {uid : uid, suid : surveyUniqueId},
@@ -1349,6 +1466,7 @@ function removePossibleAnswer()
 
 function addColumn(noundo)
 {
+	console.log("addColumn(noundo)");
 	var text;
 	var id = $(_elementProperties.selectedelement).attr("data-id");
 	var element = _elements[id];
@@ -1382,6 +1500,7 @@ function addColumn(noundo)
 
 function removeColumn(noundo)
 {
+	console.log("removeColumn(noundo)");
 	var id = $(_elementProperties.selectedelement).attr("data-id");
 	var element = _elements[id];
 	var col = element.answers.pop();
@@ -1404,6 +1523,7 @@ function removeColumn(noundo)
 
 function addRow(noundo)
 {
+	console.log("addRow(noundo)");
 	var id = $(_elementProperties.selectedelement).attr("data-id");
 	var element = _elements[id];
 	var allmandatory = true;
@@ -1464,6 +1584,7 @@ function addRow(noundo)
 
 function removeRow(noundo)
 {
+	console.log("removeRow(noundo)");
 	var id = $(_elementProperties.selectedelement).attr("data-id");
 	var element = _elements[id];
 	var row;
@@ -1807,6 +1928,7 @@ function editShortnames(span)
 
 function getQuestionsText(useparagraphs)
 {
+	console.log("getQuestionsText(useparagraphs)");
 	var id = $(_elementProperties.selectedelement).attr("data-id");
 	
 	var element = _elements[id];
@@ -1841,6 +1963,7 @@ function getQuestionsText(useparagraphs)
 
 function getColumnsText(useparagraphs)
 {
+	console.log("getColumnsText(useparagraphs)");
 	var id = $(_elementProperties.selectedelement).attr("data-id");
 	
 	if ($(_elementProperties.selectedelement).hasClass("matrix-header") || $(_elementProperties.selectedelement).hasClass("table-header"))
@@ -1880,6 +2003,7 @@ function getColumnsText(useparagraphs)
 
 function getRowsText(useparagraphs)
 {
+	console.log("getRowsText(useparagraphs)");
 	var id = $(_elementProperties.selectedelement).attr("data-id");
 	
 	if ($(_elementProperties.selectedelement).hasClass("matrix-header") || $(_elementProperties.selectedelement).hasClass("table-header"))

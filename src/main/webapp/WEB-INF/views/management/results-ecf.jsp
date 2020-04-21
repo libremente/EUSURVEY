@@ -27,20 +27,32 @@
 
 
 			<div class="form-group">
-				<label for="select-job-profiles">Display options:</label>
+				<label for="select-job-profiles"><spring:message code="label.ECF.DisplayOptions"/></label>
 				<div class="under">
 					<div class="checkbox-inline">
 						<input id="display-score" checked onchange="toggleDisplayScore()"
-							type="checkbox">Display score
+							type="checkbox"/><spring:message code="label.ECF.DisplayScores" />
 					</div>
 					<div class="checkbox-inline">
 						<input id="display-gap" checked onchange="toggleDisplayGap()"
-							type="checkbox">Display gaps
+							type="checkbox"/><spring:message code="label.ECF.DisplayGaps" />
 					</div>
 				</div>
 			</div>
 			<div class="form-group">
-				<label for="select-job-profiles">Profile Filter:</label> <select
+				<label for="select-orderBy"><spring:message code="label.ECF.SortBy" /></label> <select
+					onchange="displayCurrentPageResults()" class="form-control"
+					name="select-orderBy" id="select-orderBy">
+					<option value="gap.asc"><spring:message code="label.ECF.SortByGapAsc" /></option>
+					<option value="gap.desc"><spring:message code="label.ECF.SortByGapDesc" /></option>
+					<option value="score.asc"><spring:message code="label.ECF.SortByScoreAsc" /></option>
+					<option value="score.desc"><spring:message code="label.ECF.SortByScoreDesc" /></option>
+					<option value="name.desc"><spring:message code="label.ECF.SortByNameDesc" /></option>
+					<option value="name.asc" selected="selected"><spring:message code="label.ECF.SortByNameAsc" /></option>
+				</select>
+			</div>
+			<div class="form-group">
+				<label for="select-job-profiles"><spring:message code="label.ECF.ProfileFilter" /></label> <select
 					onchange="displayCurrentPageResults()" class="form-control"
 					name="select-job-profiles" id="select-job-profiles">
 					<c:forEach var="profile" items="${ecfProfiles}" varStatus="loop">
@@ -50,6 +62,10 @@
 					<option value="" selected="selected">All Job Profile</option>
 				</select>
 			</div>
+			<label class="labelInfoDarker" >
+				<spring:message code="label.ECF.NbInviduals" />&nbsp;
+				<div class="numberOfAnswers" id="individualNumberOfAnswers">${ecfGlobalResult.numberOfResults}</div>
+			</label>
 		</div>
 	</div>
 

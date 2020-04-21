@@ -10,7 +10,7 @@
 	<%@ include file="../includes.jsp" %>
 	<link href="${contextpath}/resources/css/fileuploader.css?version=<%@include file="../version.txt" %>" rel="stylesheet" type="text/css" />
 	<link href="${contextpath}/resources/css/runner.css?version=<%@include file="../version.txt" %>" rel="stylesheet" type="text/css" />
-	
+	<script type="text/javascript" src="${contextpath}/resources/js/Chart.min.js?version=<%@include file="../version.txt" %>"></script>
 	<script type="text/javascript" src="${contextpath}/resources/js/runner.js?version=<%@include file="../version.txt" %>"></script>
 	
 	<c:if test="${form.survey.skin != null && !form.wcagCompliance}">
@@ -65,6 +65,11 @@
 			setTimeout(function(){ window.print(); }, 3000);
 			$("input[type=checkbox]").attr("disabled","disabled");
 		});			
+	</script>
+	
+	<script type="text/javascript">
+		var uniqueCode = "${code}"
+		var contextpath = "${contextpath}"
 	</script>
 </head>
 <body id="printFromContribution">
@@ -623,6 +628,8 @@
 			</c:if>
 		</div>						
 	</div>
+	
+	<%@ include file="../ecfGraph.jsp" %>  
 	
 </body>
 </html>

@@ -1884,6 +1884,13 @@ table.table-styled input[type=text] {
 	font-style: italic;
 }
 
+
+.labelInfoDarker
+{
+	color: #717171;
+	font-style: italic;
+}
+
 a {
 	cursor: pointer;
 }
@@ -1978,8 +1985,32 @@ input[type="radio"][disabled], input[type="checkbox"][disabled], input[type="rad
 }
 
 #canvasContainer {
+	padding: 1em;
 	display: block;
 	max-width: 600px;
 	max-height: 600px;
 	margin: auto;
+}
+
+#ecfRespondentChart {
+	margin: 1em;
+}
+
+ 
+.score {
+	display: inline;
+}
+
+.gap {
+	display: inline;
+}
+
+.greenScore {
+	display: inline-block;
+	color: green;
+}
+
+.redScore {
+	display: inline-block;
+	color: red;
 }

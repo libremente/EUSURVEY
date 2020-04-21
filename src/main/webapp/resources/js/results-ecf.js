@@ -3,13 +3,25 @@
 			contextpath = contextpath.slice(0,-1);
 		}
 		
+		let orderBy = $( "#select-orderBy" ).val();
+		let orderByParam = "";
+		if (orderBy && orderBy != "") {
+			orderByParam = "&orderBy=" + orderBy;
+		}
+		
 		let profileUUID = $( "#select-job-profiles" ).val();
+		let profileUUIDParam = "";
+		if (profileUUID && profileUUID != "") {
+			profileUUIDParam = "&profile=" + profileUUID;
+		}
+		
 			$.ajax({
 				type:'GET',
 				url: contextpath + "/" + surveyShortname + "/management/ecfResultsJSON"
 				+"?pageNumber=" + pageNumber
 				+"&pageSize=" + pageSize
-				+"&profile=" + profileUUID,
+				+ profileUUIDParam
+				+ orderByParam,
 				cache: false,
 				success: function(ecfGlobalResult) {
 					if (ecfGlobalResult == null) {
@@ -18,10 +30,17 @@
 					} else {
 						displayECFTable(ecfGlobalResult);
 						displayECFChart(ecfGlobalResult);
+						displayNumberOfResults(ecfGlobalResult)
 						return ecfGlobalResult;
 					}
 				}
 			});
+	}
+	
+	function displayNumberOfResults(ecfGlobalResult) {
+		if (ecfGlobalResult && ecfGlobalResult.numberOfResults) {
+			$("#individualNumberOfAnswers").text(ecfGlobalResult.numberOfResults);
+		}
 	}
 	
 	function displayECFTable(ecfGlobalResult) {
@@ -157,10 +176,167 @@
 	}
 	
 	function displayIndividuals(competencyScores) {
-		$("th.individual").remove();
+		$("#ecfResultTable > thead > .headerrow > th.individual").remove();
 		let i = (ecfResultPage - 1) * 10;
 		competencyScores.forEach(competencyScore => {
-			$(".headerrow").append('<th class="individual">Individual ' + (i + 1) +'</th>');
+			$("#ecfResultTable > thead > .headerrow").append('<th class="individual">Individual ' + (i + 1) +'</th>');
 			i++;
 		});
 	}
+// ======================= PAGE 2 ============================= // 
+	function fetchECFProfileAssessmentResults() {
+		if (contextpath.charAt(contextpath.length - 1) === '/') {
+			contextpath = contextpath.slice(0,-1);
+		}
+		
+		let profileUUID = $( "#select-job-profiles2" ).val();
+			$.ajax({
+				type:'GET',
+				url: contextpath + "/" + surveyShortname + "/management/ecfProfileAssessmentResultsJSON"
+				+"?profile=" + profileUUID,
+				cache: false,
+				success: function(profileAssessmentResult) {
+					if (profileAssessmentResult == null) {
+						setTimeout(function(){ fetchECFProfileAssessmentResults(); }, 10000);
+						return;
+					} else {
+						displayECFTable2(profileAssessmentResult);
+						return profileAssessmentResult;
+					}
+				}
+			});
+	}
+	
+	function displayECFTable2(profileAssessmentResult) {
+		$("#numberOfAnswers").text(profileAssessmentResult.numberOfAnswers);
+		$("#ecfResultTable2 > tbody").empty();
+		profileAssessmentResult.competencyResults.forEach(competencyResult => {
+			let targetScore = "";
+			if (competencyResult.competencyTargetScore) {
+				targetScore = competencyResult.competencyTargetScore;
+			}
+			
+			$("#ecfResultTable2 > tbody:last-child")
+			.append('<tr class="bodyrow">'
+					+ '<th>' + competencyResult.competencyName + '</th>'
+					+ '<th>' + targetScore + '</th>'
+					+ '<th>' + competencyResult.competencyAverageScore + '</th>'
+					+ '<th>' + competencyResult.competencyMaxScore + '</th>'
+					+ '</tr>');
+		});
+	}
+	// ======================= PAGE 3 ============================= // 
+	function fetchECFOrganizationalResults() {
+		if (contextpath.charAt(contextpath.length - 1) === '/') {
+			contextpath = contextpath.slice(0,-1);
+		}
+		
+		$.ajax({
+			type:'GET',
+			url: contextpath + "/" + surveyShortname + "/management/ecfOrganizationalResultsJSON",
+			cache: false,
+			success: function(organizationalResult) {
+				if (organizationalResult == null) {
+					setTimeout(function(){ fetchECFOrganizationalResults(); }, 10000);
+					return;
+				} else {
+					displayECFMaxChartByOrganizationalResult(organizationalResult);
+					displayECFAverageChartByOrganizationalResult(organizationalResult);
+					return organizationalResult;
+				}
+			}
+		});
+	}	
+	
+	function displayECFAverageChartByOrganizationalResult(organizationalResult) {
+		if (organizationalResult) {
+			averageScores = [];
+			competencies = [];
+			averageTargetScores = [];
+			organizationalResult.competencyResults.forEach(competencyResult => {
+				averageScores.push(competencyResult.competencyAverageScore);
+				competencies.push(competencyResult.competencyName);
+				averageTargetScores.push(competencyResult.competencyAverageTarget);
+			});
+			
+			displayECFChart("Average scores vs Average target scores", "#ecfAverageChart", averageScores, averageTargetScores, competencies, "Average scores", "Average target scores");
+		}
+	}
+	
+	
+	function displayECFMaxChartByOrganizationalResult(organizationalResult) {
+		if (organizationalResult) {
+			maxScores = [];
+			competencies = [];
+			maxTargetScores = [];
+			organizationalResult.competencyResults.forEach(competencyResult => {
+				maxScores.push(competencyResult.competencyMaxScore);
+				competencies.push(competencyResult.competencyName);
+				maxTargetScores.push(competencyResult.competencyMaxTarget);
+			});
+			
+			displayECFChart("Max scores vs Max target scores", "#ecfMaxChart", maxScores, maxTargetScores, competencies, "Max scores", "Max target scores");
+		}
+	}
+	
+	function displayECFChart(chartTitle, canvasIdCssSelector, firstLineArray, secondLineArray, headerNamesArray, firstLineLegendName, secondLineLegendName) {
+		if (chartTitle && canvasIdCssSelector && firstLineArray && secondLineArray && headerNamesArray && firstLineLegendName && secondLineLegendName) {
+			if (firstLineArray.length === secondLineArray.length && secondLineArray.length === headerNamesArray.length) {
+				var ctx = $(canvasIdCssSelector);
+				var options = {
+					scale: {
+						angleLines: {
+					         display: false
+					       },
+					        ticks: {
+					            suggestedMin: 0,
+					            suggestedMax: 4
+					        }
+						},
+					title: {
+						display: true,
+				        text: chartTitle
+					},
+					maintainAspectRatio: true,
+					spanGaps: false,
+					elements: {
+						line: {
+							tension: 0.000001
+						}
+					},
+					plugins: {
+						filler: {
+							propagate: false
+						},
+						'samples-filler-analyser': {
+							target: 'chart-analyser'
+						}
+					}
+				};
+			
+				var myRadarChart = new Chart(ctx, {
+					type: 'radar',
+					data: {
+						labels: headerNamesArray,
+						datasets: [{
+							label: firstLineLegendName,
+							data: firstLineArray,
+							backgroundColor: 'rgba(255, 99, 132, 0.2)',
+							borderColor: 'rgba(255, 99, 132, 1)',
+							borderWidth: 1
+						},
+						{
+							label: secondLineLegendName,
+							data: secondLineArray,
+							backgroundColor: 'rgba(97, 197, 255, 0.2)',
+							borderColor: 'rgba(97, 197, 255, 1)',
+							borderWidth: 1
+						}
+						]
+					},
+					options: options
+				});
+			}
+		}
+	}
+	
