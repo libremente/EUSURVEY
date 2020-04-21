@@ -13,6 +13,9 @@ public class ECFIndividualResult {
     @JsonProperty("name")
     private String profileName;
 
+    @JsonProperty("profileUUID")
+    private String profileUUID;
+    
     @JsonProperty("competencies")
     private List<ECFIndividualCompetencyResult> competencyResultList = new ArrayList<>();
 
@@ -36,10 +39,18 @@ public class ECFIndividualResult {
         this.competencyResultList.add(competencyResult);
     }
 
+	public String getProfileUUID() {
+		return profileUUID;
+	}
+
+	public void setProfileUUID(String profileUUID) {
+		this.profileUUID = profileUUID;
+	}
+
 	@Override
 	public String toString() {
-		return "ECFIndividualResult [profileName=" + profileName + ", competencyResultList=" + competencyResultList
-				+ "]";
+		return "ECFIndividualResult [profileName=" + profileName + ", profileUUID=" + profileUUID
+				+ ", competencyResultList=" + competencyResultList + "]";
 	}
     
 }

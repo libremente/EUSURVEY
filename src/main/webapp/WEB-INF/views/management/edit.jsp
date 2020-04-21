@@ -288,6 +288,14 @@
 						<!-- ko template: { name: 'quiz-template' } --><!-- /ko -->
 					<!-- /ko -->
 					
+					<!--  ko if: Type() == 'ecf' -->
+						<!-- ko template: { name: 'ecf-template' } --><!-- /ko -->
+					<!-- /ko -->
+					
+					<!--  ko if: Type() == 'ecfAnswersToScores' -->
+						<!-- ko template: { name: 'ecfanswerstoscores-template' } --><!-- /ko -->
+					<!-- /ko -->
+					
 					<!--  ko if: Type() == 'quizanswers' -->
 						<!-- ko template: { name: 'quizanswers-template' } --><!-- /ko -->
 					<!-- /ko -->
@@ -482,6 +490,7 @@
 					success: function( result ) {	
 						for (var i = 0; i < result.length; i++)
 						{
+							// HERE WE ADD ALL THE ELEMNTS TO _ELEMENTS
 							var model = getElementViewModel(result[i]);
 							var item = addElement(model, true, false);
 							_elements[model.id()] = model;
@@ -790,6 +799,9 @@
 	 		strings["numberinvaliddecimals"] = "<spring:message code="validation.numberinvaliddecimals" />";
 	 		strings["invalidPositiveNumber"] = "<spring:message code="validation.invalidPositiveNumber" />";
 	 		strings["max255Characters"] = "<spring:message code="validation.max255Characters" />";
+	 		strings["ECFProfileSelection"] = "<spring:message code="label.ECFProfileSelection" />";
+	 		strings["ECFCompetencyQuestion"] = "<spring:message code="label.ECFCompetencyQuestion" />";
+	 		strings["ECFSelectedCompetency"] = "<spring:message code="label.ECFSelectedCompetency" />";
 	 		strings["QuizQuestion"] = "<spring:message code="label.QuizQuestion" />";
 	 		strings["Points"] = "<spring:message code="label.Points" />";
 	 		strings["empty"] = "<spring:message code="label.empty" />";

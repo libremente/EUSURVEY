@@ -26,6 +26,7 @@ public class PossibleAnswer extends Element {
 	private String savedDependentElementsString = "";
 	private ScoringItem scoring;
 	private ECFProfile ecfProfile;
+	private Integer ecfScore;
 		
 	@Column(name="QUESTION_ID")
 	public int getQuestionId() {
@@ -43,9 +44,8 @@ public class PossibleAnswer extends Element {
 		copy.setSourceId(this.getId());
 		copy.setTitle(Tools.filterHTML(this.getTitle()));
 		copy.setPosition(this.getPosition());
-		if (this.getEcfProfile() != null) {
-			copy.setEcfProfile(this.getEcfProfile());
-		}
+		copy.setEcfProfile(this.getEcfProfile());
+		copy.setEcfScore(this.ecfScore);
 		
 		if (scoring != null) copy.setScoring(scoring.copy());
 		
@@ -72,13 +72,20 @@ public class PossibleAnswer extends Element {
 	/**
 	 * An ECF Question is either on a competency or a profile
 	 */
-	@OneToOne(cascade = CascadeType.ALL)
+	@OneToOne
 	@JoinColumn(name="ECF_PROFILE", nullable = true)    
 	public ECFProfile getEcfProfile() {
 		return ecfProfile;
 	}	
 	public void setEcfProfile(ECFProfile ecfProfile) {
 		this.ecfProfile = ecfProfile;
+	}
+	
+	public Integer getEcfScore() {
+		return ecfScore;
+	}
+	public void setEcfScore(Integer ecfScore) {
+		this.ecfScore = ecfScore;
 	}
 	
 	@Transient
