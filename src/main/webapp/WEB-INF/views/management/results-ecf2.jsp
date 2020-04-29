@@ -18,28 +18,49 @@
 <div class="container-fluid">
 	<div class="row">
 		<div class="col-xs-12 col-sm-9 col-md-4 col-lg-4">
-			<h1>
-				<spring:message code="label.ECF.Big" />
-			</h1>
 			<h2>
 				<spring:message code="label.ECF.Results2" />
 			</h2>
 
 			<div class="form-group">
-				<label for="select-job-profiles2">Profile Filter:</label> <select
-					onchange="fetchECFProfileAssessmentResults()" class="form-control"
-					name="select-job-profiles2" id="select-job-profiles2">
-					<c:forEach var="profile" items="${ecfProfiles}" varStatus="loop">
-						<option value="${profile.profileUid}" selected="selected">
-							${profile.name}</option>
-					</c:forEach>
-					<option value="" selected="selected">All Job Profile</option>
-				</select>
+				<label for="select-contributions2"><spring:message
+						code="label.ECF.SelectContributions" /></label>
+				<table class="table table-styled table-striped table-bordered"
+					id="ecfSelectContributionsTable2">
+					<thead>
+						<tr class="headerrow">
+							<th><spring:message code="label.ECF.Profile" /></th>
+							<th><spring:message code="label.ECF.NumberOfContributions" />
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<c:forEach var="profileResult"
+							items="${ecfSummaryResult.profileResults}" varStatus="loop">
+
+							<c:choose>
+								<c:when test="${profileResult.isSelected}">
+									<tr onclick="selectProfile2('${profileResult.profileUid}');"
+										class="selectedrow hoverablerow"
+										data-profile-uid="${profileResult.profileUid}">
+										<th>${profileResult.profileName}</th>
+										<th>${profileResult.numberOfContributions}</th>
+									</tr>
+								</c:when>
+								<c:otherwise>
+									<tr onclick="selectProfile2('${profileResult.profileUid}');"
+										class="bodyrow hoverablerow"
+										data-profile-uid="${profileResult.profileUid}">
+										<th>${profileResult.profileName}</th>
+										<th>${profileResult.numberOfContributions}</th>
+									</tr>
+								</c:otherwise>
+							</c:choose>
+						</c:forEach>
+					</tbody>
+				</table>
+				<input id="select-job-profiles2" class="hideme" type="text" />
 			</div>
-			<label class="labelInfoDarker" >
-				<spring:message code="label.ECF.NbInviduals" />&nbsp;
-				<div class="numberOfAnswers" id="numberOfAnswers">${ecfProfileResult.numberOfAnswers}</div>
-			</label>
 		</div>
 	</div>
 

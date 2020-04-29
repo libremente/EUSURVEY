@@ -18,9 +18,6 @@
 <div class="container-fluid">
 	<div class="row">
 		<div class="col-xs-12 col-sm-9 col-md-4 col-lg-4">
-			<h1>
-				<spring:message code="label.ECF.Big" />
-			</h1>
 			<h2>
 				<spring:message code="label.ECF.Results3" />
 			</h2>
@@ -58,10 +55,13 @@
 			</table>
 		</div>
 		<div id="chartsContainer"
-			class="col-xs-12 col-sm-12 col-md-9 col-lg-9">
+			class="col-xs-12 col-sm-12 col-md-9 col-lg-9 h-50">
 			<div class="inlineChart col-xs-12 col-sm-12 col-md-5 col-lg-5">
 				<canvas id="ecfMaxChart"></canvas>
 			</div>
+		</div>
+		<div id="chartsContainer2"
+			class="col-xs-12 col-sm-12 col-md-9 col-lg-9 h-50">
 			<div class="inlineChart col-xs-12 col-sm-12 col-md-5 col-lg-5">
 				<canvas id="ecfAverageChart"></canvas>
 			</div>

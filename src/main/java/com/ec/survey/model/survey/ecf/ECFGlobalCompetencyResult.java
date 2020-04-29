@@ -19,7 +19,8 @@ public class ECFGlobalCompetencyResult implements Comparable {
 
     @JsonProperty("scoreGaps")
     private List<Integer> competencyScoreGaps = new ArrayList<>();
-
+    
+    private Integer order;
 
 	@JsonIgnore
     private List<Integer> questionsScores = new ArrayList<>();
@@ -63,7 +64,8 @@ public class ECFGlobalCompetencyResult implements Comparable {
 	public void addCompetencyScoreGap(Integer scoreGap) {
 		this.competencyScoreGaps.add(scoreGap);
 	}
-
+	
+	
 	public List<Integer> getQuestionsScores() {
 		return questionsScores;
 	}
@@ -72,19 +74,27 @@ public class ECFGlobalCompetencyResult implements Comparable {
 		this.questionsScores = questionsScores;
 	}
 	
+    public Integer getOrder() {
+		return order;
+	}
 
-    @Override
+	public void setOrder(Integer order) {
+		this.order = order;
+	}
+
+
+	@Override
 	public String toString() {
 		return "ECFGlobalCompetencyResult [competencyName=" + competencyName + ", competencyTargetScore="
 				+ competencyTargetScore + ", competencyScores=" + competencyScores + ", competencyScoreGaps="
-				+ competencyScoreGaps + ", questionsScores=" + questionsScores + "]";
+				+ competencyScoreGaps + ", order=" + order + ", questionsScores=" + questionsScores + "]";
 	}
 
 	@Override
 	public int compareTo(Object otherObject) {
 		if (otherObject instanceof ECFGlobalCompetencyResult) {
 			ECFGlobalCompetencyResult otherResult = (ECFGlobalCompetencyResult) otherObject;
-			return this.getCompetencyName().compareTo(otherResult.getCompetencyName());
+			return this.getOrder().compareTo(otherResult.getOrder());
 		} else {
 			return 0;
 		}

@@ -27,7 +27,7 @@ import org.hibernate.annotations.FetchMode;
  * Represents a profile
  */
 @Entity
-@Table(name = "PROFILE")
+@Table(name = "ECF_PROFILE")
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 public class ECFProfile implements Serializable {
