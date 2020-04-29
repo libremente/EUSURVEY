@@ -65,7 +65,7 @@ public class SurveyCreator {
 			possibleAnswer.setUniqueId(UUID.randomUUID().toString());
 			possibleAnswer.setPosition(answerPosition);
 			possibleAnswer.setShortname("profile." + ecfProfile.getProfileUid());
-			possibleAnswer.setTitle("Profile " + ecfProfile.getName());
+			possibleAnswer.setTitle(ecfProfile.getName());
 
 			profileScQuestion.getPossibleAnswers().add(possibleAnswer);
 			answerPosition++;
@@ -80,7 +80,7 @@ public class SurveyCreator {
 				"Competency " + ecfCompetency.getName() + " question " + noqfoc,
 				"q" +noqfoc + ".competency." + ecfCompetency.getCompetenceUid(),
 				 UUID.randomUUID().toString());
-				singleChoiceQuestion.setPosition(position++);
+				singleChoiceQuestion.setPosition(ecfCompetency.getOrderNumber() + position);
 				singleChoiceQuestion.setHelp("Please choose from 0 to 4");
 				singleChoiceQuestion.setOptional(false);
 				singleChoiceQuestion.setUseRadioButtons(true);

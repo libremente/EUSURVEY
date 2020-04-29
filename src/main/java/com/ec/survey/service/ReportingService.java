@@ -145,6 +145,20 @@ public class ReportingService {
 				where += " QCONTRIBUTIONID = :uniqueCode";
 				values.put("uniqueCode", filter.getCaseId().trim());
 			}
+			
+			//ECF
+			if (filter.getEcfProfileUid() != null && filter.getEcfProfileUid().length() > 0)
+			{
+				if (where.length() == 0)
+				{
+					where += " WHERE";
+				} else {
+					where += " AND";
+				}
+				
+				where += " QECFPROFILEUID = :ecfProfileUid";
+				values.put("ecfProfileUid", filter.getEcfProfileUid().trim());
+			}
 					
 			
 			if (filter.getUser() != null && filter.getUser().length() > 0)
@@ -802,6 +816,7 @@ public class ReportingService {
 		columnNamesToType.put("UPDATED", "DATETIME");
 		columnNamesToType.put("LANGUAGE", "VARCHAR(2)");
 		columnNamesToType.put("SCORE", "INT");
+		columnNamesToType.put("ECFPROFILEUID", "VARCHAR(255)");
 
 		for (Element question : survey.getQuestions()) {
 			if (question instanceof FreeTextQuestion) {
@@ -1172,6 +1187,9 @@ public class ReportingService {
 		
 		columns.add("SCORE");
 		values.add(answerSet.getScore() != null ? answerSet.getScore().toString() : null);
+		
+		columns.add("ECFPROFILEUID");
+		values.add(answerSet.getEcfProfileUid() != null && answerSet.getEcfProfileUid().length() > 0 ? "'" + answerSet.getEcfProfileUid() + "'" : null);
 		
 		columns.add("ANSWERSETID");
 		values.add(answerSet.getId().toString());

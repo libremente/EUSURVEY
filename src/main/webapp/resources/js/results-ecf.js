@@ -1,3 +1,12 @@
+
+	function selectProfile(profileUid) {
+		$("#select-profile-filter").val(profileUid);
+		ecfResultPage = 1;
+		displayCurrentPageResults();
+		$("#ecfSelectContributionsTable > tbody > .selectedrow").removeClass("selectedrow");
+		$("#ecfSelectContributionsTable > tbody > tr[data-profile-uid='" + profileUid + "']").addClass("selectedrow");
+	}
+
 	function fetchECFResults(pageNumber, pageSize) {
 		if (contextpath.charAt(contextpath.length - 1) === '/') {
 			contextpath = contextpath.slice(0,-1);
@@ -9,10 +18,16 @@
 			orderByParam = "&orderBy=" + orderBy;
 		}
 		
-		let profileUUID = $( "#select-job-profiles" ).val();
-		let profileUUIDParam = "";
-		if (profileUUID && profileUUID != "") {
-			profileUUIDParam = "&profile=" + profileUUID;
+		let profileComparisonUUID = $( "#select-job-profiles" ).val();
+		let profileComparisonUUIDParam = "";
+		if (profileComparisonUUID && profileComparisonUUID != "") {
+			profileComparisonUUIDParam = "&profileComparison=" + profileComparisonUUID;
+		}
+		
+		let profileFilterUUID = $( "#select-profile-filter" ).val();
+		let profileFilterUUIDParam = "";
+		if (profileFilterUUID && profileFilterUUID != "") {
+			profileFilterUUIDParam = "&profileFilter=" + profileFilterUUID;
 		}
 		
 			$.ajax({
@@ -20,7 +35,8 @@
 				url: contextpath + "/" + surveyShortname + "/management/ecfResultsJSON"
 				+"?pageNumber=" + pageNumber
 				+"&pageSize=" + pageSize
-				+ profileUUIDParam
+				+ profileComparisonUUIDParam
+				+ profileFilterUUIDParam
 				+ orderByParam,
 				cache: false,
 				success: function(ecfGlobalResult) {
@@ -45,9 +61,24 @@
 	
 	function displayECFTable(ecfGlobalResult) {
 		$("#ecfResultTable > tbody").empty();
-		let i = 1;
+		let totalResults = ecfGlobalResult.totalResults;
+		ecfMaxResultPage = ecfGlobalResult.numberOfPages; 
+		
+		displayPreviousPageLinks();
+		displayCurrentPageLink();
+		displayNextPageLinks();
+		
+		let totalTarget = (totalResults.totalTargetScore != null && totalResults.totalTargetScore != undefined) ? totalResults.totalTargetScore : "";
+		
+		$("#ecfResultTable > tbody:last-child")
+		.append('<tr class="bodyrow">'
+				+ '<th>' + totalResults.competencyName + '</th>'
+				+ '<th>' + totalTarget + '</th>'
+				+ displayScoresColumn(totalResults.totalScores, totalResults.totalGaps)
+				+ '</tr>');
+		
+		
 		ecfGlobalResult.individualResults.forEach(individualResult => {
-			
 			let targetScore = "";
 			if (individualResult.targetScore) {
 				targetScore = individualResult.targetScore;
@@ -60,9 +91,7 @@
 					+ displayScoresColumn(individualResult.scores, individualResult.scoreGaps)
 					+ '</tr>');
 			
-			if (i === 1) {
-				displayIndividuals(individualResult.scores);
-			}
+			displayIndividuals(individualResult.scores);
 		});
 		
 		
@@ -70,42 +99,47 @@
 	
 	function displayScoresColumn(competencyScores, competencyScoreGaps) {
 		let restOfARow = '';
+		let i = 0;
+		competencyScores.forEach(competencyScore => {
+			restOfARow = restOfARow.concat(oneScoreWithGapTH(competencyScore,competencyScoreGaps[i]));
+			i++;
+		});
+		return restOfARow;
+	}
+	
+	function oneScoreWithGapTH(score, gap) {
+		let oneTh = '';
 		let displayGap = $('#display-gap').is(":checked");
 		let displayScore = $('#display-score').is(":checked");
 		
 		let scoreClass = displayScore ? 'score' : 'score hidden';
 		let gapClass = displayGap ? 'gap ' : 'gap hidden ';
+		let gapColor = (gap>=0) ? 'greenScore' : 'redScore';
+		let gapDisplayed = (gap>=0) ? '+' + gap : gap; 
 		
-		if (competencyScoreGaps.length === competencyScores.length) {
-			let i = 0;
-			competencyScores.forEach(competencyScore => {
-				let gapColor = (competencyScoreGaps[i]>=0) ? 'greenScore' : 'redScore';
-				restOfARow = restOfARow.concat('<th><div>'
-						+ '<div class="'
-						+ scoreClass
-						+ '">'
-						+ competencyScore 
-						+ '</div>'
-						+ '<div class="' 
-						+ gapClass
-						+ gapColor 
-						+ '">&nbsp; (' 
-						+ competencyScoreGaps[i] 
-						+ ')</div></div></th>');
-				i++;
-			});
-		} else {
-			let scoreClass = displayScore ? 'score' : 'score hidden';
-			competencyScores.forEach(competencyScore => {
-				restOfARow = restOfARow.concat('<th><div>'
-						+ '<div class="'
-						+ scoreClass
-						+ '">'
-						+ competencyScore
-						+ '</div></div></th>');
-			});
+		let scoreDiv = '<div class="'
+			+ scoreClass
+			+ '">'
+			+ score 
+			+ '</div>';
+		
+		let gapDiv = '';
+		
+		if (gap != null && gap != undefined) {
+			gapDiv = '<div class="' 
+				+ gapClass
+				+ gapColor 
+				+ '">&nbsp; (' 
+				+ gapDisplayed
+				+ ')</div>';
 		}
-		return restOfARow;
+		
+		oneTh = oneTh.concat('<th><div>'
+				+ scoreDiv
+				+ gapDiv
+				+ '</div></th>');
+		
+		return oneTh;
 	}
 	
 	function displayECFChart(ecfResult) {
@@ -147,32 +181,35 @@
 		displayCurrentPageResults();
 	}
 	
+	function displayCurrentPageLink() {
+		$("a.currentResultPage").text(ecfResultPage);
+	}
+	
 	function displayPreviousPageLinks() {
-		$("#previousPagesLinks").empty();
+		$(".previousPagesLinks").empty();
 		if (ecfResultPage > 1) {
-			$("#previousPagesLinks").append('<a onclick="previousResultPage()" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>');
+			$(".previousPagesLinks").append('<a onclick="previousResultPage()" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>');
 		}
 		for (let i = 1; i < ecfResultPage; i++){
-			$("#previousPagesLinks").append('<a onclick="selectResultPage(' + i +')">' + i +'</a>');
+			$(".previousPagesLinks").append('<a onclick="selectResultPage(' + i +')">' + i +'</a>');
 		}
 	}
 	
 	function displayNextPageLinks() {
-		$("#nextPagesLinks").empty();
-		for (let i = ecfResultPage + 1; i <= ecfMaxResultPage; i++){
-			$("#nextPagesLinks").append('<a onclick="selectResultPage(' + i +')">' + i +'</a>');
+		$(".nextPagesLinks").empty();
+		console.log(ecfResultPage + 1);
+		console.log(ecfMaxResultPage);
+		for (let i = (ecfResultPage + 1); i <= ecfMaxResultPage; i++){
+			$(".nextPagesLinks").append('<a onclick="selectResultPage(' + i +')">' + i +'</a>');
 		}
 		
 		if (ecfResultPage < ecfMaxResultPage) {
-			$("#nextPagesLinks").append('<a onclick="nextResultPage()" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>');
+			$(".nextPagesLinks").append('<a onclick="nextResultPage()" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>');
 		}
 	}
 	
 	function displayCurrentPageResults() {
 		fetchECFResults(ecfResultPage, 10);
-		displayPreviousPageLinks();
-		$("a#currentResultPage").text(ecfResultPage);
-		displayNextPageLinks();
 	}
 	
 	function displayIndividuals(competencyScores) {
@@ -184,6 +221,13 @@
 		});
 	}
 // ======================= PAGE 2 ============================= // 
+	function selectProfile2(profileUid) {
+		$("#select-job-profiles2").val(profileUid);
+		fetchECFProfileAssessmentResults();
+		$("#ecfSelectContributionsTable2 > tbody > .selectedrow").removeClass("selectedrow");
+		$("#ecfSelectContributionsTable2 > tbody > tr[data-profile-uid='" + profileUid + "']").addClass("selectedrow");
+	}
+	
 	function fetchECFProfileAssessmentResults() {
 		if (contextpath.charAt(contextpath.length - 1) === '/') {
 			contextpath = contextpath.slice(0,-1);
@@ -208,7 +252,6 @@
 	}
 	
 	function displayECFTable2(profileAssessmentResult) {
-		$("#numberOfAnswers").text(profileAssessmentResult.numberOfAnswers);
 		$("#ecfResultTable2 > tbody").empty();
 		profileAssessmentResult.competencyResults.forEach(competencyResult => {
 			let targetScore = "";

@@ -24,10 +24,13 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ec.survey.exception.ECFException;
 import com.ec.survey.model.Answer;
 import com.ec.survey.model.AnswerSet;
+import com.ec.survey.model.ECFCluster;
 import com.ec.survey.model.ECFCompetency;
 import com.ec.survey.model.ECFExpectedScore;
 import com.ec.survey.model.ECFExpectedScoreToProfileEid;
 import com.ec.survey.model.ECFProfile;
+import com.ec.survey.model.ECFType;
+import com.ec.survey.model.ResultFilter;
 import com.ec.survey.model.SqlPagination;
 import com.ec.survey.model.survey.ChoiceQuestion;
 import com.ec.survey.model.survey.Element;
@@ -37,12 +40,16 @@ import com.ec.survey.model.survey.SingleChoiceQuestion;
 import com.ec.survey.model.survey.Survey;
 import com.ec.survey.model.survey.ecf.ECFGlobalCompetencyResult;
 import com.ec.survey.model.survey.ecf.ECFGlobalResult;
+import com.ec.survey.model.survey.ecf.ECFGlobalTotalResult;
 import com.ec.survey.model.survey.ecf.ECFIndividualCompetencyResult;
 import com.ec.survey.model.survey.ecf.ECFIndividualResult;
 import com.ec.survey.model.survey.ecf.ECFOrganizationalCompetencyResult;
 import com.ec.survey.model.survey.ecf.ECFOrganizationalResult;
 import com.ec.survey.model.survey.ecf.ECFProfileCompetencyResult;
 import com.ec.survey.model.survey.ecf.ECFProfileResult;
+import com.ec.survey.model.survey.ecf.ECFProfileSummaryResult;
+import com.ec.survey.model.survey.ecf.ECFSummaryResult;
+import com.google.common.primitives.Ints;
 
 @Service("ecfService")
 @Configurable
@@ -52,6 +59,49 @@ public class ECFService extends BasicService {
 
 	@Resource(name = "sessionFactory")
 	private SessionFactory sessionFactory;
+
+	public ECFSummaryResult getECFSummaryResult(Survey survey) throws Exception {
+		ECFSummaryResult ecfSummaryResult = new ECFSummaryResult();
+		List<AnswerSet> answerSets = this.answerService.getAllAnswers(survey.getId(), null);
+
+		Set<ECFProfile> profiles = this.getECFProfiles(survey);
+		Map<String, String> profileUidToName = new HashMap<>();
+		Map<String, Integer> profileToNumber = new HashMap<>();
+
+		for (ECFProfile profile : profiles) {
+			profileUidToName.put(profile.getProfileUid(), profile.getName());
+			profileToNumber.put(profile.getProfileUid(), 0);
+		}
+
+		for (AnswerSet answerSet : answerSets) {
+			String profileUid = this.getECFProfile(survey, answerSet).getProfileUid();
+			if (profileToNumber.containsKey(profileUid)) {
+				Integer previousNumber = profileToNumber.get(profileUid);
+				profileToNumber.put(profileUid, previousNumber + 1);
+			} else {
+				throw new ECFException("An answerset references a non existing profile : " + profileUid);
+			}
+		}
+
+		Integer totalContributions = 0;
+		for (String profileUid : profileToNumber.keySet()) {
+			ECFProfileSummaryResult ecfSummaryProfileResult = new ECFProfileSummaryResult();
+			ecfSummaryProfileResult.setProfileName(profileUidToName.get(profileUid));
+			ecfSummaryProfileResult.setNumberOfContributions(profileToNumber.get(profileUid));
+			ecfSummaryProfileResult.setProfileUid(profileUid);
+			ecfSummaryResult.addProfileResult(ecfSummaryProfileResult);
+
+			totalContributions = totalContributions + ecfSummaryProfileResult.getNumberOfContributions();
+		}
+
+		ECFProfileSummaryResult ecfSummaryProfileResult = new ECFProfileSummaryResult();
+		ecfSummaryProfileResult.setProfileName("All job profile");
+		ecfSummaryProfileResult.setNumberOfContributions(totalContributions);
+		ecfSummaryProfileResult.setIsSelected(true);
+		ecfSummaryResult.addProfileResult(ecfSummaryProfileResult);
+
+		return ecfSummaryResult;
+	}
 
 	public ECFOrganizationalResult getECFOrganizationalResult(Survey survey) throws Exception {
 		if (survey == null || !survey.getIsECF()) {
@@ -103,6 +153,7 @@ public class ECFService extends BasicService {
 		for (ECFCompetency competency : competencyToMaxTarget.keySet()) {
 			ECFOrganizationalCompetencyResult competencyResult = new ECFOrganizationalCompetencyResult();
 			competencyResult.setCompetencyName(competency.getName());
+			competencyResult.setOrder(competency.getOrderNumber());
 
 			competencyResult.setCompetencyMaxTarget(competencyToMaxTarget.get(competency));
 
@@ -185,6 +236,7 @@ public class ECFService extends BasicService {
 		for (ECFCompetency competency : competenciesToScores.keySet()) {
 			ECFProfileCompetencyResult profileCompetencyResult = new ECFProfileCompetencyResult();
 			profileCompetencyResult.setCompetencyName(competency.getName());
+			profileCompetencyResult.setOrder(competency.getOrderNumber());
 			List<Integer> scores = competenciesToScores.get(competency);
 
 			if (scores.size() != 0) {
@@ -314,25 +366,39 @@ public class ECFService extends BasicService {
 		return this.getECFGlobalResult(survey, sqlPagination, null);
 	}
 
+	public ECFGlobalResult getECFGlobalResult(Survey survey, SqlPagination sqlPagination, ECFProfile profileComparison)
+			throws Exception {
+		return this.getECFGlobalResult(survey, sqlPagination, profileComparison, null);
+	}
+
 	/**
 	 * Returns the ECFGlobalResult for the given Survey, Pagination, and optional
 	 * EcfProfile
 	 */
-	public ECFGlobalResult getECFGlobalResult(Survey survey, SqlPagination sqlPagination, ECFProfile ecfProfile)
-			throws Exception {
+	public ECFGlobalResult getECFGlobalResult(Survey survey, SqlPagination sqlPagination, ECFProfile profileComparison,
+			ECFProfile profileFilter) throws Exception {
 		if (survey == null || !survey.getIsECF()) {
 			throw new IllegalArgumentException("survey needs to be ECF to parse ECF results");
 		}
 
 		ECFGlobalResult result = new ECFGlobalResult();
-		List<AnswerSet> answerSets = this.answerService.getAnswersFromReporting(survey, sqlPagination);
-		Integer countAnswers = this.reportingService.getCount(survey);
+		if (profileComparison != null) {
+			result.setProfileComparisonUid(profileComparison.getProfileUid());
+		}
+		if (profileFilter != null) {
+			result.setProfileFilterUid(profileFilter.getProfileUid());
+		}
+
+		List<AnswerSet> answerSets = profileFilter != null ? this.getAnswers(survey, profileFilter, sqlPagination)
+				: this.getAnswers(survey, sqlPagination);
+
+		Integer countAnswers = profileFilter != null ? this.getCount(survey, profileFilter) : this.getCount(survey);
 
 		Map<ECFCompetency, Integer> competencyToExpectedScore = new HashMap<ECFCompetency, Integer>();
 
-		if (ecfProfile != null) {
-			result.setProfileName(ecfProfile.getName());
-			competencyToExpectedScore = this.getProfileExpectedScores(ecfProfile);
+		if (profileComparison != null) {
+			result.setProfileComparisonUid(profileComparison.getProfileUid());
+			competencyToExpectedScore = this.getProfileExpectedScores(profileComparison);
 		}
 
 		Map<ECFCompetency, List<Integer>> competenciesToScores = this.getCompetenciesToScores(survey, answerSets);
@@ -341,6 +407,7 @@ public class ECFService extends BasicService {
 			List<Integer> competencyScores = competenciesToScores.get(competency);
 
 			ECFGlobalCompetencyResult globalCompetencyResult = new ECFGlobalCompetencyResult();
+			globalCompetencyResult.setOrder(competency.getOrderNumber());
 			globalCompetencyResult.setCompetencyName(competency.getName());
 			globalCompetencyResult.setCompetencyScores(competencyScores);
 
@@ -355,6 +422,39 @@ public class ECFService extends BasicService {
 			}
 			result.addIndividualResults(globalCompetencyResult);
 		}
+
+		ECFGlobalTotalResult totalResult = new ECFGlobalTotalResult();
+		Integer totalExpectedScore = null;
+		List<Integer> totalScores = new ArrayList<>();
+		List<Integer> totalGaps = new ArrayList<>();
+
+		if (!result.getIndividualResults().isEmpty()) {
+			int[] totalScoresArray = new int[result.getIndividualResults().get(0).getCompetencyScores().size()];
+			int[] totalGapsArray = new int[result.getIndividualResults().get(0).getCompetencyScoreGaps().size()];
+
+			for (ECFGlobalCompetencyResult competencyResult : result.getIndividualResults()) {
+				if (competencyResult.getCompetencyTargetScore() != null) {
+					totalExpectedScore = totalExpectedScore == null ? competencyResult.getCompetencyTargetScore()
+							: totalExpectedScore + competencyResult.getCompetencyTargetScore();
+				}
+
+				for (int i = 0; i < competencyResult.getCompetencyScores().size(); i++) {
+					totalScoresArray[i] = totalScoresArray[i] + competencyResult.getCompetencyScores().get(i);
+
+					if (totalGapsArray.length > 0) {
+						totalGapsArray[i] = totalGapsArray[i] + competencyResult.getCompetencyScoreGaps().get(i);
+					}
+				}
+			}
+			totalScores = Ints.asList(totalScoresArray);
+			totalGaps = Ints.asList(totalGapsArray);
+		}
+
+		totalResult.setTotalTargetScore(totalExpectedScore);
+		totalResult.setTotalScores(totalScores);
+		totalResult.setTotalGaps(totalGaps);
+
+		result.setTotalResult(totalResult);
 
 		result.setPageNumber(sqlPagination.getCurrentPage());
 		result.setPageSize(sqlPagination.getRowsPerPage());
@@ -400,6 +500,7 @@ public class ECFService extends BasicService {
 		for (ECFCompetency competency : competenciesToScores.keySet()) {
 			ECFIndividualCompetencyResult competencyResult = new ECFIndividualCompetencyResult();
 			competencyResult.setCompetencyName(competency.getName());
+			competencyResult.setOrder(competency.getOrderNumber());
 			competencyResult.setCompetencyTargetScore(competenciesToExpectedScores.get(competency));
 			competencyResult.setCompetencyScore(competenciesToScores.get(competency).get(0));
 			ecfIndividualResult.addCompetencyResult(competencyResult);
@@ -415,7 +516,10 @@ public class ECFService extends BasicService {
 	 * 
 	 * @throws ECFException if no ECFProfile could be found answered by the user
 	 */
-	private ECFProfile getECFProfile(Survey survey, AnswerSet answerSet) throws ECFException {
+	public ECFProfile getECFProfile(Survey survey, AnswerSet answerSet) throws ECFException {
+		if (answerSet.getEcfProfileUid() != null) {
+			return this.getECFProfileByUUID(answerSet.getEcfProfileUid());
+		}
 		for (Element element : survey.getElements()) {
 			if (element instanceof Question) {
 				Question question = (Question) element;
@@ -438,58 +542,411 @@ public class ECFService extends BasicService {
 		throw new ECFException("An answers set must reference a profile");
 	}
 
+	public Map<String, String> defaultClusterToType() {
+		Map<String, String> clusterNameToType = new HashMap<>();
+		clusterNameToType.put("Horizontal", "Procurement specific competencies");
+		clusterNameToType.put("Pre-award", "Procurement specific competencies");
+		clusterNameToType.put("Post-award", "Procurement specific competencies");
+
+		clusterNameToType.put("Self", "Professional competencies");
+		clusterNameToType.put("People", "Professional competencies");
+		clusterNameToType.put("Performance", "Professional competencies");
+		return clusterNameToType;
+
+	}
+
+	public Map<String, String> defaultCompetencyToCluster() {
+		Map<String, String> competencyToCluster = new HashMap<>();
+		competencyToCluster.put("C1 - Planning", "Horizontal");
+		competencyToCluster.put("C2 - Lifecycle", "Horizontal");
+		competencyToCluster.put("C3 - Legislation", "Horizontal");
+		competencyToCluster.put("C4 - e-Procurement & other IT tools", "Horizontal");
+		competencyToCluster.put("C5 - Sustainable procurement", "Horizontal");
+		competencyToCluster.put("C6 - Innovation Procurement", "Horizontal");
+		competencyToCluster.put("C7 - Category specific", "Horizontal");
+		competencyToCluster.put("C8 - Supplier management", "Horizontal");
+		competencyToCluster.put("C9 - Negotiations", "Horizontal");
+		competencyToCluster.put("C10 - Negotiations", "Pre-award");
+		competencyToCluster.put("C11 - Market analysis and market engagement", "Pre-award");
+		competencyToCluster.put("C12 - Procurement strategy", "Pre-award");
+		competencyToCluster.put("C13 - Technical specifications", "Pre-award");
+		competencyToCluster.put("C14 - Tender documentation", "Pre-award");
+		competencyToCluster.put("C15 - Tender evaluation", "Pre-award");
+		competencyToCluster.put("C16 - Contract management", "Post-award");
+		competencyToCluster.put("C17 - Certification and payment", "Post-award");
+		competencyToCluster.put("C18 - Reporting and evaluation", "Post-award");
+		competencyToCluster.put("C19 - Conflict resolution / mediation", "Post-award");
+		competencyToCluster.put("C20 - Adaptability and modernisation", "Self");
+		competencyToCluster.put("C21 - Analytical and critical thinking", "Self");
+		competencyToCluster.put("C22 - Communication", "Self");
+		competencyToCluster.put("C23 - Ethics and compliance", "Self");
+		competencyToCluster.put("C24 - Collaboration", "People");
+		competencyToCluster.put("C25 - Stakeholder relationship management", "People");
+		competencyToCluster.put("C26 - Team management and Leadership", "People");
+		competencyToCluster.put("C27 - Organisational awareness", "Performance");
+		competencyToCluster.put("C28 - Project management", "Performance");
+		competencyToCluster.put("C29 - Performance orientation", "Performance");
+		competencyToCluster.put("C30 - Risk management and internal control", "Performance");
+		return competencyToCluster;
+	}
+
+	public Map<String, Integer> defaultCompetenciesOrder() {
+		Map<String, Integer> competencyToOrder = new HashMap<>();
+		competencyToOrder.put("C1 - Planning", 1);
+		competencyToOrder.put("C2 - Lifecycle", 2);
+		competencyToOrder.put("C3 - Legislation", 3);
+		competencyToOrder.put("C4 - e-Procurement & other IT tools", 4);
+		competencyToOrder.put("C5 - Sustainable procurement", 5);
+		competencyToOrder.put("C6 - Innovation Procurement", 6);
+		competencyToOrder.put("C7 - Category specific", 7);
+		competencyToOrder.put("C8 - Supplier management", 8);
+		competencyToOrder.put("C9 - Negotiations", 9);
+		competencyToOrder.put("C10 - Negotiations", 10);
+		competencyToOrder.put("C11 - Market analysis and market engagement", 11);
+		competencyToOrder.put("C12 - Procurement strategy", 12);
+		competencyToOrder.put("C13 - Technical specifications", 13);
+		competencyToOrder.put("C14 - Tender documentation", 14);
+		competencyToOrder.put("C15 - Tender evaluation", 15);
+		competencyToOrder.put("C16 - Contract management", 16);
+		competencyToOrder.put("C17 - Certification and payment", 17);
+		competencyToOrder.put("C18 - Reporting and evaluation", 18);
+		competencyToOrder.put("C19 - Conflict resolution / mediation", 19);
+		competencyToOrder.put("C20 - Adaptability and modernisation", 20);
+		competencyToOrder.put("C21 - Analytical and critical thinking", 21);
+		competencyToOrder.put("C22 - Communication", 22);
+		competencyToOrder.put("C23 - Ethics and compliance", 23);
+		competencyToOrder.put("C24 - Collaboration", 24);
+		competencyToOrder.put("C25 - Stakeholder relationship management", 25);
+		competencyToOrder.put("C26 - Team management and Leadership", 26);
+		competencyToOrder.put("C27 - Organisational awareness", 27);
+		competencyToOrder.put("C28 - Project management", 28);
+		competencyToOrder.put("C29 - Performance orientation", 29);
+		competencyToOrder.put("C30 - Risk management and internal control", 30);
+		return competencyToOrder;
+	}
+
+	public Map<String, Map<String, Integer>> defaultProfileNameToCompetencyName() {
+		Map<String, Map<String, Integer>> profileToCompetencyToScore = new HashMap<>();
+		profileToCompetencyToScore.put("Procurement support officer", this.defaultProcurementSupportOfficer());
+		profileToCompetencyToScore.put("Standalone public buyer", this.defaultStandalonePublicBuyer());
+		profileToCompetencyToScore.put("Public procurement specialist", this.defaultPublicProcurementSpecialist());
+		profileToCompetencyToScore.put("Category specialist", this.defaultCategorySpecialist());
+		profileToCompetencyToScore.put("Contract manager", this.defaultContractManager());
+		profileToCompetencyToScore.put("Department manager", this.defaultDepartmentManager());
+		return profileToCompetencyToScore;
+	}
+
+	private Map<String, Integer> defaultDepartmentManager() {
+		Map<String, Integer> competencyToScore = new HashMap<>();
+		competencyToScore.put("C1 - Planning", 3);
+		competencyToScore.put("C2 - Lifecycle", 3);
+		competencyToScore.put("C3 - Legislation", 4);
+		competencyToScore.put("C4 - e-Procurement & other IT tools", 2);
+		competencyToScore.put("C5 - Sustainable procurement", 3);
+		competencyToScore.put("C6 - Innovation Procurement", 3);
+		competencyToScore.put("C7 - Category specific", 0);
+		competencyToScore.put("C8 - Supplier management", 2);
+		competencyToScore.put("C9 - Negotiations", 3);
+		competencyToScore.put("C10 - Negotiations", 3);
+		competencyToScore.put("C11 - Market analysis and market engagement", 0);
+		competencyToScore.put("C12 - Procurement strategy", 3);
+		competencyToScore.put("C13 - Technical specifications", 0);
+		competencyToScore.put("C14 - Tender documentation", 0);
+		competencyToScore.put("C15 - Tender evaluation", 2);
+		competencyToScore.put("C16 - Contract management", 2);
+		competencyToScore.put("C17 - Certification and payment", 2);
+		competencyToScore.put("C18 - Reporting and evaluation", 3);
+		competencyToScore.put("C19 - Conflict resolution / mediation", 2);
+		competencyToScore.put("C20 - Adaptability and modernisation", 3);
+		competencyToScore.put("C21 - Analytical and critical thinking", 4);
+		competencyToScore.put("C22 - Communication", 3);
+		competencyToScore.put("C23 - Ethics and compliance", 4);
+		competencyToScore.put("C24 - Collaboration", 3);
+		competencyToScore.put("C25 - Stakeholder relationship management", 4);
+		competencyToScore.put("C26 - Team management and Leadership", 3);
+		competencyToScore.put("C27 - Organisational awareness", 4);
+		competencyToScore.put("C28 - Project management", 3);
+		competencyToScore.put("C29 - Performance orientation", 3);
+		competencyToScore.put("C30 - Risk management and internal control", 4);
+		return competencyToScore;
+	}
+
+	private Map<String, Integer> defaultContractManager() {
+		Map<String, Integer> competencyToScore = new HashMap<>();
+		competencyToScore.put("C1 - Planning", 2);
+		competencyToScore.put("C2 - Lifecycle", 2);
+		competencyToScore.put("C3 - Legislation", 2);
+		competencyToScore.put("C4 - e-Procurement & other IT tools", 1);
+		competencyToScore.put("C5 - Sustainable procurement", 2);
+		competencyToScore.put("C6 - Innovation Procurement", 2);
+		competencyToScore.put("C7 - Category specific", 0);
+		competencyToScore.put("C8 - Supplier management", 2);
+		competencyToScore.put("C9 - Negotiations", 2);
+		competencyToScore.put("C10 - Negotiations", 0);
+		competencyToScore.put("C11 - Market analysis and market engagement", 0);
+		competencyToScore.put("C12 - Procurement strategy", 0);
+		competencyToScore.put("C13 - Technical specifications", 0);
+		competencyToScore.put("C14 - Tender documentation", 0);
+		competencyToScore.put("C15 - Tender evaluation", 0);
+		competencyToScore.put("C16 - Contract management", 3);
+		competencyToScore.put("C17 - Certification and payment", 3);
+		competencyToScore.put("C18 - Reporting and evaluation", 2);
+		competencyToScore.put("C19 - Conflict resolution / mediation", 2);
+		competencyToScore.put("C20 - Adaptability and modernisation", 2);
+		competencyToScore.put("C21 - Analytical and critical thinking", 3);
+		competencyToScore.put("C22 - Communication", 3);
+		competencyToScore.put("C23 - Ethics and compliance", 3);
+		competencyToScore.put("C24 - Collaboration", 2);
+		competencyToScore.put("C25 - Stakeholder relationship management", 3);
+		competencyToScore.put("C26 - Team management and Leadership", 0);
+		competencyToScore.put("C27 - Organisational awareness", 2);
+		competencyToScore.put("C28 - Project management", 2);
+		competencyToScore.put("C29 - Performance orientation", 3);
+		competencyToScore.put("C30 - Risk management and internal control", 3);
+		return competencyToScore;
+	}
+
+	private Map<String, Integer> defaultCategorySpecialist() {
+		Map<String, Integer> competencyToScore = new HashMap<>();
+		competencyToScore.put("C1 - Planning", 2);
+		competencyToScore.put("C2 - Lifecycle", 3);
+		competencyToScore.put("C3 - Legislation", 1);
+		competencyToScore.put("C4 - e-Procurement & other IT tools", 1);
+		competencyToScore.put("C5 - Sustainable procurement", 3);
+		competencyToScore.put("C6 - Innovation Procurement", 3);
+		competencyToScore.put("C7 - Category specific", 3);
+		competencyToScore.put("C8 - Supplier management", 2);
+		competencyToScore.put("C9 - Negotiations", 0);
+		competencyToScore.put("C10 - Negotiations", 2);
+		competencyToScore.put("C11 - Market analysis and market engagement", 2);
+		competencyToScore.put("C12 - Procurement strategy", 2);
+		competencyToScore.put("C13 - Technical specifications", 3);
+		competencyToScore.put("C14 - Tender documentation", 1);
+		competencyToScore.put("C15 - Tender evaluation", 1);
+		competencyToScore.put("C16 - Contract management", 2);
+		competencyToScore.put("C17 - Certification and payment", 0);
+		competencyToScore.put("C18 - Reporting and evaluation", 0);
+		competencyToScore.put("C19 - Conflict resolution / mediation", 0);
+		competencyToScore.put("C20 - Adaptability and modernisation", 2);
+		competencyToScore.put("C21 - Analytical and critical thinking", 2);
+		competencyToScore.put("C22 - Communication", 1);
+		competencyToScore.put("C23 - Ethics and compliance", 1);
+		competencyToScore.put("C24 - Collaboration", 1);
+		competencyToScore.put("C25 - Stakeholder relationship management", 1);
+		competencyToScore.put("C26 - Team management and Leadership", 0);
+		competencyToScore.put("C27 - Organisational awareness", 1);
+		competencyToScore.put("C28 - Project management", 0);
+		competencyToScore.put("C29 - Performance orientation", 2);
+		competencyToScore.put("C30 - Risk management and internal control", 1);
+		return competencyToScore;
+	}
+
+	private Map<String, Integer> defaultPublicProcurementSpecialist() {
+		Map<String, Integer> competencyToScore = new HashMap<>();
+		competencyToScore.put("C1 - Planning", 1);
+		competencyToScore.put("C2 - Lifecycle", 3);
+		competencyToScore.put("C3 - Legislation", 1);
+		competencyToScore.put("C4 - e-Procurement & other IT tools", 2);
+		competencyToScore.put("C5 - Sustainable procurement", 1);
+		competencyToScore.put("C6 - Innovation Procurement", 1);
+		competencyToScore.put("C7 - Category specific", 1);
+		competencyToScore.put("C8 - Supplier management", 1);
+		competencyToScore.put("C9 - Negotiations", 2);
+		competencyToScore.put("C10 - Negotiations", 2);
+		competencyToScore.put("C11 - Market analysis and market engagement", 2);
+		competencyToScore.put("C12 - Procurement strategy", 2);
+		competencyToScore.put("C13 - Technical specifications", 2);
+		competencyToScore.put("C14 - Tender documentation", 2);
+		competencyToScore.put("C15 - Tender evaluation", 2);
+		competencyToScore.put("C16 - Contract management", 1);
+		competencyToScore.put("C17 - Certification and payment", 1);
+		competencyToScore.put("C18 - Reporting and evaluation", 2);
+		competencyToScore.put("C19 - Conflict resolution / mediation", 1);
+		competencyToScore.put("C20 - Adaptability and modernisation", 1);
+		competencyToScore.put("C21 - Analytical and critical thinking", 2);
+		competencyToScore.put("C22 - Communication", 2);
+		competencyToScore.put("C23 - Ethics and compliance", 2);
+		competencyToScore.put("C24 - Collaboration", 2);
+		competencyToScore.put("C25 - Stakeholder relationship management", 2);
+		competencyToScore.put("C26 - Team management and Leadership", 1);
+		competencyToScore.put("C27 - Organisational awareness", 2);
+		competencyToScore.put("C28 - Project management", 2);
+		competencyToScore.put("C29 - Performance orientation", 2);
+		competencyToScore.put("C30 - Risk management and internal control", 2);
+		return competencyToScore;
+	}
+
+	private Map<String, Integer> defaultStandalonePublicBuyer() {
+		Map<String, Integer> competencyToScore = new HashMap<>();
+		competencyToScore.put("C1 - Planning", 1);
+		competencyToScore.put("C2 - Lifecycle", 2);
+		competencyToScore.put("C3 - Legislation", 2);
+		competencyToScore.put("C4 - e-Procurement & other IT tools", 2);
+		competencyToScore.put("C5 - Sustainable procurement", 1);
+		competencyToScore.put("C6 - Innovation Procurement", 1);
+		competencyToScore.put("C7 - Category specific", 1);
+		competencyToScore.put("C8 - Supplier management", 1);
+		competencyToScore.put("C9 - Negotiations", 2);
+		competencyToScore.put("C10 - Negotiations", 1);
+		competencyToScore.put("C11 - Market analysis and market engagement", 2);
+		competencyToScore.put("C12 - Procurement strategy", 2);
+		competencyToScore.put("C13 - Technical specifications", 2);
+		competencyToScore.put("C14 - Tender documentation", 2);
+		competencyToScore.put("C15 - Tender evaluation", 2);
+		competencyToScore.put("C16 - Contract management", 2);
+		competencyToScore.put("C17 - Certification and payment", 2);
+		competencyToScore.put("C18 - Reporting and evaluation", 2);
+		competencyToScore.put("C19 - Conflict resolution / mediation", 1);
+		competencyToScore.put("C20 - Adaptability and modernisation", 2);
+		competencyToScore.put("C21 - Analytical and critical thinking", 2);
+		competencyToScore.put("C22 - Communication", 2);
+		competencyToScore.put("C23 - Ethics and compliance", 3);
+		competencyToScore.put("C24 - Collaboration", 1);
+		competencyToScore.put("C25 - Stakeholder relationship management", 1);
+		competencyToScore.put("C26 - Team management and Leadership", 1);
+		competencyToScore.put("C27 - Organisational awareness", 2);
+		competencyToScore.put("C28 - Project management", 2);
+		competencyToScore.put("C29 - Performance orientation", 2);
+		competencyToScore.put("C30 - Risk management and internal control", 2);
+		return competencyToScore;
+	}
+
+	private Map<String, Integer> defaultProcurementSupportOfficer() {
+		Map<String, Integer> competencyToScore = new HashMap<>();
+		competencyToScore.put("C1 - Planning", 0);
+		competencyToScore.put("C2 - Lifecycle", 1);
+		competencyToScore.put("C3 - Legislation", 0);
+		competencyToScore.put("C4 - e-Procurement & other IT tools", 1);
+		competencyToScore.put("C5 - Sustainable procurement", 0);
+		competencyToScore.put("C6 - Innovation Procurement", 0);
+		competencyToScore.put("C7 - Category specific", 0);
+		competencyToScore.put("C8 - Supplier management", 1);
+		competencyToScore.put("C9 - Negotiations", 0);
+		competencyToScore.put("C10 - Negotiations", 1);
+		competencyToScore.put("C11 - Market analysis and market engagement", 1);
+		competencyToScore.put("C12 - Procurement strategy", 0);
+		competencyToScore.put("C13 - Technical specifications", 1);
+		competencyToScore.put("C14 - Tender documentation", 1);
+		competencyToScore.put("C15 - Tender evaluation", 0);
+		competencyToScore.put("C16 - Contract management", 1);
+		competencyToScore.put("C17 - Certification and payment", 1);
+		competencyToScore.put("C18 - Reporting and evaluation", 1);
+		competencyToScore.put("C19 - Conflict resolution / mediation", 0);
+		competencyToScore.put("C20 - Adaptability and modernisation", 0);
+		competencyToScore.put("C21 - Analytical and critical thinking", 1);
+		competencyToScore.put("C22 - Communication", 1);
+		competencyToScore.put("C23 - Ethics and compliance", 2);
+		competencyToScore.put("C24 - Collaboration", 2);
+		competencyToScore.put("C25 - Stakeholder relationship management", 1);
+		competencyToScore.put("C26 - Team management and Leadership", 0);
+		competencyToScore.put("C27 - Organisational awareness", 2);
+		competencyToScore.put("C28 - Project management", 1);
+		competencyToScore.put("C29 - Performance orientation", 1);
+		competencyToScore.put("C30 - Risk management and internal control", 1);
+		return competencyToScore;
+	}
+
 	/**
 	 * Creates the ECF profiles defined for the matrix
 	 */
 	@Transactional
-	public Set<ECFProfile> createECFProfiles() {
+	public Map<ECFProfile, Map<String, Integer>> createECFProfileToCompetencyNameToScore(
+			Map<String, Map<String, Integer>> profileNameToCompetencyToScore) {
 		Session session = sessionFactory.getCurrentSession();
-		Set<ECFProfile> ecfProfiles = new HashSet<ECFProfile>();
 
-		// TODO: configuration for this
-		String[] profiles = new String[] { "Procurement support officer", "Standalone public buyer",
-				"Public procurement specialist", "Category specialist", "Contract manager", "Department manager" };
+		Map<ECFProfile, Map<String, Integer>> profileToCompetencyToScore = new HashMap<>();
 
-		for (String profileName : profiles) {
-			ECFProfile ecfProfile = new ECFProfile(UUID.randomUUID().toString(), profileName, "profile_description");
-			ecfProfiles.add(ecfProfile);
+		for (String profileName : profileNameToCompetencyToScore.keySet()) {
+			ECFProfile ecfProfile = new ECFProfile(UUID.randomUUID().toString(), profileName,
+					profileName + " description");
 			session.saveOrUpdate(ecfProfile);
+
+			Map<String, Integer> competencyNameToScore = profileNameToCompetencyToScore.get(profileName);
+			profileToCompetencyToScore.put(ecfProfile, competencyNameToScore);
 		}
 
-		return ecfProfiles;
+		return profileToCompetencyToScore;
+	}
+
+	@Transactional
+	public Map<String, ECFType> createClusterNameToType(Map<String, String> clusterToTypeNames) {
+		Session session = sessionFactory.getCurrentSession();
+
+		Map<String, ECFType> clusterNameToType = new HashMap<>();
+		for (String clusterName : clusterToTypeNames.keySet()) {
+			String typeName = clusterToTypeNames.get(clusterName);
+			ECFType type = new ECFType(UUID.randomUUID().toString(), typeName);
+			session.saveOrUpdate(type);
+			clusterNameToType.put(clusterName, type);
+		}
+
+		return clusterNameToType;
+	}
+
+	@Transactional
+	public Map<String, ECFCluster> createCompetencyNameToCluster(Map<String, ECFType> clusterNameToType,
+			Map<String, String> competencyToClusterNames) {
+		Session session = sessionFactory.getCurrentSession();
+		Map<String, ECFCluster> clusterNameToCluster = new HashMap<>();
+		for (String clusterName : clusterNameToType.keySet()) {
+			ECFType ecfType = clusterNameToType.get(clusterName);
+			ECFCluster cluster = new ECFCluster(UUID.randomUUID().toString(), clusterName, ecfType);
+
+			session.saveOrUpdate(cluster);
+			clusterNameToCluster.put(clusterName, cluster);
+		}
+
+		Map<String, ECFCluster> competencyNameToCluster = new HashMap<>();
+		for (String competencyName : competencyToClusterNames.keySet()) {
+			String clusterName = competencyToClusterNames.get(competencyName);
+			ECFCluster cluster = clusterNameToCluster.get(clusterName);
+			competencyNameToCluster.put(competencyName, cluster);
+		}
+
+		return competencyNameToCluster;
 	}
 
 	/**
 	 * Creates the ECF competencies defined for the matrix
 	 */
 	@Transactional
-	public Set<ECFCompetency> createECFCompetencies(Set<ECFProfile> ecfProfiles) {
+	public Set<ECFCompetency> createECFCompetencies(Map<ECFProfile, Map<String, Integer>> profileToCompetencyToScore,
+			Map<String, ECFCluster> competencyToCluster, Map<String, Integer> competencyToOrder) {
 		Session session = sessionFactory.getCurrentSession();
 		Set<ECFCompetency> ecfCompetencies = new HashSet<ECFCompetency>();
 
-		// Iterate on the competencies
-		for (int i = 0; i < 5; i++) {
-			ECFCompetency ecfCompetency = new ECFCompetency(UUID.randomUUID().toString(), "competency_name" + i,
-					"competency_description");
-			session.saveOrUpdate(ecfCompetency);
+		Map<String, ECFCompetency> nameToCompetency = new HashMap<>();
 
-			// Iterate on the profiles to set the scores
-			List<ECFExpectedScore> expectedScores = new ArrayList<>();
-			for (ECFProfile ecfProfile : ecfProfiles) {
+		// Go through the profiles
+		for (ECFProfile profile : profileToCompetencyToScore.keySet()) {
+			Map<String, Integer> competencyNameToScore = profileToCompetencyToScore.get(profile);
+
+			// Go through the competencies and their scores
+			for (String competencyName : competencyNameToScore.keySet()) {
+				Integer expectedScoreI = competencyNameToScore.get(competencyName);
+				ECFCompetency ecfCompetency = null;
+				ECFCluster cluster = competencyToCluster.get(competencyName);
+				if (nameToCompetency.containsKey(competencyName)) {
+					ecfCompetency = nameToCompetency.get(competencyName);
+				} else {
+					ecfCompetency = new ECFCompetency(UUID.randomUUID().toString(), competencyName,
+							competencyName + " description", cluster, competencyToOrder.get(competencyName));
+					session.saveOrUpdate(ecfCompetency);
+					nameToCompetency.put(competencyName, ecfCompetency);
+				}
+
 				ECFExpectedScoreToProfileEid eid = new ECFExpectedScoreToProfileEid();
 				eid.setECFCompetency(ecfCompetency);
-				eid.setECFProfile(ecfProfile);
-				ECFExpectedScore expectedScore = new ECFExpectedScore(eid, 2);
+				eid.setECFProfile(profile);
+				ECFExpectedScore expectedScore = new ECFExpectedScore(eid, expectedScoreI);
 				session.saveOrUpdate(expectedScore);
 
-				ecfProfile.addECFExpectedScore(expectedScore);
-				expectedScores.add(expectedScore);
+				profile.addECFExpectedScore(expectedScore);
+				ecfCompetency.addECFExpectedScore(expectedScore);
 			}
-			ecfCompetency.setECFExpectedScores(expectedScores);
-
-			ecfCompetencies.add(ecfCompetency);
 		}
-		return ecfCompetencies;
+
+		return nameToCompetency.values().stream().collect(Collectors.toSet());
 	}
 
 	public Set<ECFProfile> getECFProfiles(Survey ecfSurvey) {
@@ -511,7 +968,7 @@ public class ECFService extends BasicService {
 	}
 
 	@Transactional
-	public Survey copySurveyECFElements(Survey alreadyCopiedSurvey) {
+	public Survey copySurveyECFElements(Survey alreadyCopiedSurvey) throws ECFException {
 		Session session = sessionFactory.getCurrentSession();
 		if (alreadyCopiedSurvey == null || !alreadyCopiedSurvey.getIsECF()) {
 			throw new IllegalArgumentException("survey needs to be ECF to copy its ECF elements");
@@ -519,6 +976,8 @@ public class ECFService extends BasicService {
 
 		Map<ECFCompetency, ECFCompetency> oldECFCompetencyToNew = new HashMap<>();
 		Map<ECFProfile, ECFProfile> oldECFProfileToNew = new HashMap<>();
+		Map<ECFCluster, ECFCluster> oldECFClusterToNew = new HashMap<>();
+		Map<ECFType, ECFType> oldECFTypeToNew = new HashMap<>();
 
 		Set<ECFExpectedScore> encounteredScores = new HashSet<>();
 
@@ -534,7 +993,40 @@ public class ECFService extends BasicService {
 					ECFCompetency newCompetency = null;
 
 					if (!oldECFCompetencyToNew.containsKey(oldCompetency)) {
+						// COPYING THE COMPETENCY AND ALL ITS INNER COMPONENTS
 						newCompetency = oldCompetency.copy();
+
+						ECFCluster oldCluster = oldCompetency.getEcfCluster();
+						ECFCluster newCluster = null;
+						if (!oldECFClusterToNew.containsKey(oldCluster)) {
+							newCluster = oldCluster.copy();
+
+							ECFType oldType = oldCluster.getEcfType();
+							ECFType newType = null;
+
+							if (!oldECFTypeToNew.containsKey(oldType)) {
+								newType = oldType.copy();
+
+								// SAVING TYPE
+								session.saveOrUpdate(newType);
+								oldECFTypeToNew.put(oldType, newType);
+							} else {
+								newType = oldECFTypeToNew.get(oldType);
+							}
+
+							newCluster.setEcfType(newType);
+							newType.addCluster(newCluster);
+
+							// SAVING CLUSTER
+							session.saveOrUpdate(newCluster);
+							oldECFClusterToNew.put(oldCluster, newCluster);
+						} else {
+							newCluster = oldECFClusterToNew.get(oldCluster);
+						}
+						newCompetency.setEcfCluster(newCluster);
+						newCluster.addCompetency(newCompetency);
+
+						// SAVING COMPETENCY
 						session.saveOrUpdate(newCompetency);
 						oldECFCompetencyToNew.put(oldCompetency, newCompetency);
 					} else {
@@ -553,10 +1045,15 @@ public class ECFService extends BasicService {
 					}
 
 					ECFProfile oldProfile = possibleAnswer.getEcfProfile();
-					ECFProfile newProfile = oldProfile.copy();
-					session.saveOrUpdate(newProfile);
 
-					oldECFProfileToNew.put(oldProfile, newProfile);
+					ECFProfile newProfile = null;
+					if (!oldECFProfileToNew.containsKey(oldProfile)) {
+						newProfile = oldProfile.copy();
+						session.saveOrUpdate(newProfile);
+						oldECFProfileToNew.put(oldProfile, newProfile);
+					} else {
+						newProfile = oldECFProfileToNew.get(oldProfile);
+					}
 
 					possibleAnswer.setEcfProfile(newProfile);
 				}
@@ -570,6 +1067,13 @@ public class ECFService extends BasicService {
 
 			ECFCompetency newScoreCompetency = oldECFCompetencyToNew.get(oldScoreCompetency);
 			ECFProfile newScoreProfile = oldECFProfileToNew.get(oldScoreProfile);
+
+			if (newScoreCompetency == null) {
+				throw new ECFException("Competency " + oldScoreCompetency.getCompetenceUid() + " was not well copied");
+			}
+			if (newScoreProfile == null) {
+				throw new ECFException("Profile " + oldScoreProfile.getProfileUid() + " was not well copied");
+			}
 
 			ECFExpectedScoreToProfileEid eid = new ECFExpectedScoreToProfileEid();
 			eid.setECFCompetency(newScoreCompetency);
@@ -586,7 +1090,6 @@ public class ECFService extends BasicService {
 		}
 
 		return alreadyCopiedSurvey;
-
 	}
 
 	@SuppressWarnings("unchecked")
@@ -604,6 +1107,28 @@ public class ECFService extends BasicService {
 
 	private float roundedAverage(Integer totalScore, Integer numberOfScores) {
 		return (float) Math.round((totalScore.floatValue() / numberOfScores) * 10) / 10;
+	}
+
+	private List<AnswerSet> getAnswers(Survey survey, ECFProfile profile, SqlPagination sqlPagination)
+			throws Exception {
+		ResultFilter resultFilter = new ResultFilter();
+		resultFilter.setEcfProfileUid(profile.getProfileUid());
+		return answerService.getAnswers(survey, resultFilter, sqlPagination, false, false, true);
+	}
+
+	private List<AnswerSet> getAnswers(Survey survey, SqlPagination sqlPagination) throws Exception {
+		return answerService.getAnswers(survey, null, sqlPagination, false, false, true);
+	}
+
+	private Integer getCount(Survey survey, ECFProfile profile) throws Exception {
+		ResultFilter resultFilter = new ResultFilter();
+		resultFilter.setEcfProfileUid(profile.getProfileUid());
+		return this.answerService.getNumberOfAnswerSets(survey, resultFilter);
+	}
+
+	private Integer getCount(Survey survey) throws Exception {
+		ResultFilter resultFilter = new ResultFilter();
+		return this.answerService.getNumberOfAnswerSets(survey, resultFilter);
 	}
 
 }

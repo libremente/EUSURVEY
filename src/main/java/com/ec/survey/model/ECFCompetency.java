@@ -12,6 +12,8 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
@@ -28,7 +30,7 @@ import org.hibernate.annotations.FetchMode;
  * Represents a competence
  */
 @Entity
-@Table(name = "COMPETENCY")
+@Table(name = "ECF_COMPETENCY")
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 public class ECFCompetency implements Serializable {
@@ -43,6 +45,8 @@ public class ECFCompetency implements Serializable {
 	private String description;
 	private List<Question> questions;
 	private List<ECFExpectedScore> expectedScores = new ArrayList<>();
+	private ECFCluster ecfCluster;
+	private Integer orderNumber;
 
 	protected static final Logger logger = Logger.getLogger(ECFCompetency.class);
 
@@ -54,6 +58,21 @@ public class ECFCompetency implements Serializable {
 		this.competenceUid = competenceUid;
 		this.description = description;
 		this.name = name;
+	}
+
+	public ECFCompetency(String competenceUid, String name, String description, ECFCluster ecfCluster) {
+		this.competenceUid = competenceUid;
+		this.name = name;
+		this.description = description;
+		this.ecfCluster = ecfCluster;
+	}
+	
+	public ECFCompetency(String competenceUid, String name, String description, ECFCluster ecfCluster, Integer orderNumber) {
+		this.competenceUid = competenceUid;
+		this.name = name;
+		this.description = description;
+		this.ecfCluster = ecfCluster;
+		this.orderNumber = orderNumber;
 	}
 
 	@Id
@@ -121,13 +140,33 @@ public class ECFCompetency implements Serializable {
 	public void addECFExpectedScore(ECFExpectedScore expectedScore) {
 		this.expectedScores.add(expectedScore);
 	}
-	
+
+	@Column(name = "ORDER_NUMBER")
+	public Integer getOrderNumber() {
+		return this.orderNumber;
+	}
+
+	public void setOrderNumber(Integer orderNumber) {
+		this.orderNumber = orderNumber;
+	}
+
+	@JsonIgnore
+	@ManyToOne
+	@JoinColumn(name = "ECF_CLUSTER", referencedColumnName = "ECF_CLUSTER_ID")
+	public ECFCluster getEcfCluster() {
+		return ecfCluster;
+	}
+
+	public void setEcfCluster(ECFCluster ecfCluster) {
+		this.ecfCluster = ecfCluster;
+	}
+
 	public ECFCompetency replaceScore(ECFProfile previousScoreId, ECFExpectedScore copiedScore) {
 		this.setECFExpectedScores(this.expectedScores.stream().map(expectedScore -> {
 			if (expectedScore.getECFExpectedScoreToProfileEid().getECFProfile().equals(previousScoreId)) {
 				return copiedScore;
 			} else {
-			return expectedScore;
+				return expectedScore;
 			}
 		}).collect(Collectors.toList()));
 		return this;
@@ -135,11 +174,11 @@ public class ECFCompetency implements Serializable {
 
 	public ECFCompetency copy() {
 		ECFCompetency competencyCopy = new ECFCompetency(UUID.randomUUID().toString(), this.getName(),
-				this.getDescription());
+				this.getDescription(), this.getEcfCluster(), this.getOrderNumber());
 
 		return competencyCopy;
 	}
-	
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;

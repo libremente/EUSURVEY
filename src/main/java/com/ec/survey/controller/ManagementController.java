@@ -59,6 +59,8 @@ import com.ec.survey.model.survey.ecf.ECFIndividualResult;
 import com.ec.survey.model.survey.ecf.ECFProfileResult;
 import com.ec.survey.model.survey.ecf.ECFGlobalResult;
 import com.ec.survey.model.survey.ecf.ECFOrganizationalResult;
+import com.ec.survey.model.survey.ecf.ECFProfileResult;
+import com.ec.survey.model.survey.ecf.ECFSummaryResult;
 
 @Controller
 @RequestMapping("/{shortname}/management")
@@ -2946,11 +2948,13 @@ public class ManagementController extends BasicController {
 			result.addObject("ecfProfiles", ecfProfiles);
 			
 			ECFGlobalResult ecfGlobalResult = this.ecfService.getECFGlobalResult(survey, sqlPagination);
+			ECFSummaryResult ecfSummaryResult = this.ecfService.getECFSummaryResult(survey);
 			ECFProfileResult ecfProfileResult = this.ecfService.getECFProfileResult(survey);
 			ECFOrganizationalResult ecfOrganizationalResult = this.ecfService.getECFOrganizationalResult(survey);
 			result.addObject("ecfGlobalResult", ecfGlobalResult);
 			result.addObject("ecfProfileResult", ecfProfileResult);
 			result.addObject("ecfOrganizationalResult", ecfOrganizationalResult);
+			result.addObject("ecfSummaryResult", ecfSummaryResult);
 			
 			result.addObject("surveyShortname", shortname);
 		}
@@ -3262,7 +3266,10 @@ public class ManagementController extends BasicController {
 		// PARAMS
 		String pageNumberOrNull = request.getParameter("pageNumber");
 		String pageSizeOrNull = request.getParameter("pageSize");
-		String profileOrNull = request.getParameter("profile");
+		String profileComparisonOrNull = request.getParameter("profileComparison");
+		String profileFilterOrNull = request.getParameter("profileFilter");
+		logger.info("profileComparison " + profileComparisonOrNull);
+		logger.info("profileFilter " + profileFilterOrNull);
 		String groupByOrNull = request.getParameter("groupBy");
 
 		if (pageNumberOrNull == null || pageSizeOrNull == null) {
@@ -3300,16 +3307,23 @@ public class ManagementController extends BasicController {
 		
 		// ACTUAL CODE
 		try {
-			if (profileOrNull != null && !profileOrNull.isEmpty()) {
-				ECFProfile ecfProfileOrNull = this.ecfService.getECFProfileByUUID(profileOrNull);
-				if (ecfProfileOrNull == null) {
+			ECFProfile ecfProfileComparisonOrNull = null;
+			if (profileComparisonOrNull != null && !profileComparisonOrNull.isEmpty()) {
+				ecfProfileComparisonOrNull = this.ecfService.getECFProfileByUUID(profileComparisonOrNull);
+				if (ecfProfileComparisonOrNull == null) {
 					throw new NotFoundException();
-				} else {
-					return this.ecfService.getECFGlobalResult(survey, sqlPagination, ecfProfileOrNull);
+				} 
+			} 
+			
+			ECFProfile ecfProfileFilterOrNull = null;
+			if (profileFilterOrNull != null && !profileFilterOrNull.isEmpty()) {
+				ecfProfileFilterOrNull = this.ecfService.getECFProfileByUUID(profileFilterOrNull);
+				if (ecfProfileFilterOrNull == null) {
+					throw new NotFoundException();
 				}
-			} else {
-				return this.ecfService.getECFGlobalResult(survey, sqlPagination);
 			}
+			
+			return this.ecfService.getECFGlobalResult(survey, sqlPagination, ecfProfileComparisonOrNull, ecfProfileFilterOrNull);
 
 		} catch (NotFoundException e) {
 			throw e;

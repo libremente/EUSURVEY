@@ -11,9 +11,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class ECFGlobalResult {
 
-    @JsonProperty("name")
-    private String profileName;
-
+    @JsonProperty("profileComparisonUid")
+    private String profileComparisonUid;
+    
+    @JsonProperty("profileFilterUid")
+    private String profileFilterUid;
+    
+    @JsonProperty("totalResults")
+    private ECFGlobalTotalResult totalResults = new ECFGlobalTotalResult();
+    
     @JsonProperty("individualResults")
     private List<ECFGlobalCompetencyResult> individualResults = new ArrayList<>();
     
@@ -29,14 +35,30 @@ public class ECFGlobalResult {
     @JsonProperty("numberOfResults")
     private Integer numberOfResults;
     
-	public String getProfileName() {
-		return profileName;
+	public String getProfileComparisonUid() {
+		return profileComparisonUid;
 	}
 
-	public void setProfileName(String profileName) {
-		this.profileName = profileName;
+	public void setProfileComparisonUid(String profileComparisonUid) {
+		this.profileComparisonUid = profileComparisonUid;
 	}
 
+	public String getProfileFilterUid() {
+		return profileFilterUid;
+	}
+
+	public void setProfileFilterUid(String profileFilterUid) {
+		this.profileFilterUid = profileFilterUid;
+	}
+	
+	public ECFGlobalTotalResult getTotalResults() {
+		return totalResults;
+	}
+
+	public void setTotalResult(ECFGlobalTotalResult totalResults) {
+		this.totalResults = totalResults;
+	}
+	
 	public List<ECFGlobalCompetencyResult> getIndividualResults() {
 		return individualResults;
 	}
@@ -84,9 +106,12 @@ public class ECFGlobalResult {
 
 	@Override
 	public String toString() {
-		return "ECFGlobalResult [profileName=" + profileName + ", individualResults=" + individualResults
+		return "ECFGlobalResult [profileComparisonUid=" + profileComparisonUid + ", profileFilterUid="
+				+ profileFilterUid + ", totalResults=" + totalResults + ", individualResults=" + individualResults
 				+ ", pageNumber=" + pageNumber + ", pageSize=" + pageSize + ", numberOfPages=" + numberOfPages
 				+ ", numberOfResults=" + numberOfResults + "]";
 	}
+
+
 	
 }

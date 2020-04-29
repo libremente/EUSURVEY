@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service("schemaService")
@@ -59,9 +60,15 @@ public class SchemaService extends BasicService {
 
 			User admin = administrationService.getUserForLogin(administrationService.getAdminUser(), false);
 			Language objLang = surveyService.getLanguage("EN");
-			Set<ECFProfile> ecfProfiles = ecfService.createECFProfiles();
+			
+			Map<String, ECFType> clusterNameToType = ecfService.createClusterNameToType(ecfService.defaultClusterToType());
+			Map<String, ECFCluster> competencyNameToCluster = ecfService.createCompetencyNameToCluster(clusterNameToType, ecfService.defaultCompetencyToCluster());
+			Map<ECFProfile, Map<String, Integer>> profileToCompetencyToScore = ecfService.createECFProfileToCompetencyNameToScore(ecfService.defaultProfileNameToCompetencyName());
+			Set<ECFCompetency> ecfCompetencies = ecfService.createECFCompetencies(profileToCompetencyToScore, competencyNameToCluster, ecfService.defaultCompetenciesOrder());
+			Set<ECFProfile> ecfProfiles = profileToCompetencyToScore.keySet();
+			
 			Survey ecfSurvey = SurveyCreator.createNewECFSurvey(admin, objLang,
-			ecfService.createECFCompetencies(ecfProfiles), ecfProfiles);
+			ecfCompetencies, ecfProfiles);
 			surveyService.add(ecfSurvey, -1);
 			surveyService.publish(ecfSurvey, -1, -1, false, -1, false, false);
 
