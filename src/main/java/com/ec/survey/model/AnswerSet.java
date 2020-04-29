@@ -41,6 +41,7 @@ public class AnswerSet implements java.io.Serializable {
 	private Boolean disclaimerMinimized;
 	private Boolean wcagMode;
 	private Integer score;
+	private String ecfProfileUid;
 	
 	@Id
 	@Column(name = "ANSWER_SET_ID")
@@ -302,6 +303,7 @@ public class AnswerSet implements java.io.Serializable {
 		copy.uniqueCode = uniqueCode;
 		copy.updateDate = updateDate;
 		copy.score = score;
+		copy.ecfProfileUid = ecfProfileUid;
 
 		for (Answer answer : answers) {
 			Answer copyanswer = answer.copy(copy, files);
@@ -337,6 +339,14 @@ public class AnswerSet implements java.io.Serializable {
 	}
 	public void setScore(Integer score) {
 		this.score = score;
+	}
+	
+	@Column(name = "ECF_PROFILE_UID")
+	public String getEcfProfileUid() {
+		return ecfProfileUid;
+	}
+	public void setEcfProfileUid(String ecfProfileUid) {
+		this.ecfProfileUid = ecfProfileUid;
 	}
 	
 	@Transient

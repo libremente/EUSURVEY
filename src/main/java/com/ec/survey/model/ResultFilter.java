@@ -49,6 +49,7 @@ public class ResultFilter implements java.io.Serializable {
 	private Boolean onlyReallyUpdated = false;
 	private Boolean noTestAnswers = false;
 	private Boolean defaultQuestions = true;
+	private String ecfProfileUid;
 	
 	public void clearResultFilter() {
 		invitation = null;
@@ -66,6 +67,7 @@ public class ResultFilter implements java.io.Serializable {
 		createdOrUpdated = false;
 		onlyReallyUpdated = false;
 		noTestAnswers = false;
+		ecfProfileUid = null;
 	}	
 
 	public void clearSelectedQuestions() {
@@ -337,6 +339,7 @@ public class ResultFilter implements java.io.Serializable {
 		result.append(this.updatedTo);
 		result.append(this.createdOrUpdated);
 		result.append(this.onlyReallyUpdated);
+		result.append(this.ecfProfileUid == null ? "" : this.ecfProfileUid);
 	
 		result.append(this.languages == null ? "" : StringUtils.join(this.languages, ""));
 		result.append(StringUtils.join(this.filterValues.keySet(), ""));
@@ -379,6 +382,7 @@ public class ResultFilter implements java.io.Serializable {
 		if (updatedTo != null) return false;
 		if (languages != null && languages.size() > 0) return false;
 		if (filterValues != null && filterValues.size() > 0) return false;
+		if (ecfProfileUid != null && !ecfProfileUid.isEmpty()) return false;
 		
 		return true;
 	}
@@ -432,6 +436,7 @@ public class ResultFilter implements java.io.Serializable {
 		copy.surveyEndDateTo = surveyEndDateTo;
 		
 		copy.defaultQuestions = defaultQuestions;
+		copy.ecfProfileUid = ecfProfileUid;
 
 		return copy;
 	}
@@ -505,6 +510,15 @@ public class ResultFilter implements java.io.Serializable {
 	}
 	public void setDefaultQuestions(Boolean defaultQuestions) {
 		this.defaultQuestions = defaultQuestions;
+	}
+
+	@Column(name = "RESFILTER_ECF_PROFILE_UID")
+	public String getEcfProfileUid() {
+		return ecfProfileUid;
+	}
+
+	public void setEcfProfileUid(String ecfProfileUid) {
+		this.ecfProfileUid = ecfProfileUid;
 	}
 
 }

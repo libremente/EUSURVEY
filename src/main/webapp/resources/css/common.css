@@ -1987,8 +1987,7 @@ input[type="radio"][disabled], input[type="checkbox"][disabled], input[type="rad
 #canvasContainer {
 	padding: 1em;
 	display: block;
-	max-width: 600px;
-	max-height: 600px;
+	max-width: 800px;
 	margin: auto;
 }
 
@@ -2013,4 +2012,14 @@ input[type="radio"][disabled], input[type="checkbox"][disabled], input[type="rad
 .redScore {
 	display: inline-block;
 	color: red;
+}
+
+.selectedrow {
+	background-color: #98b1ff7d  !important;
+	
+}
+
+.hoverablerow:hover th  {
+	cursor: pointer;
+	background-color: #98b1ff7d  !important;
 }

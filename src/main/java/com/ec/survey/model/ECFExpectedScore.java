@@ -5,7 +5,6 @@ import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 import java.io.Serializable;
-import java.util.Map;
 
 import javax.persistence.*;
 
@@ -14,7 +13,7 @@ import javax.persistence.*;
  * Competencies.
  */
 @Entity
-@Table(name = "EXPECTED_SCORE")
+@Table(name = "ECF_EXPECTED_SCORE")
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 public class ECFExpectedScore implements Serializable {

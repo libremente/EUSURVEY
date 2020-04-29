@@ -14,6 +14,7 @@
 			</select>
 		</div>
 	</c:if>
+	<canvas id="ecfRespondentChart"></canvas>
 	<table class="table table-styled table-striped table-bordered"
 		id="ecfResultTable" style="margin-bottom: 10px">
 		<thead>
@@ -26,7 +27,6 @@
 		<tbody>
 		</tbody>
 	</table>
-	<canvas id="ecfRespondentChart"></canvas>
 </div>
 
 

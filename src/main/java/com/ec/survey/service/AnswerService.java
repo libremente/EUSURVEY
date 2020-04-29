@@ -163,6 +163,12 @@ public class AnswerService extends BasicService {
 
 			answerSet.setUpdateDate(new Date());
 			boolean newAnswer = answerSet.getId() == null;
+			
+			if (answerSet.getSurvey().getIsECF()) {
+				ECFProfile ecfProfile = this.ecfService.getECFProfile(answerSet.getSurvey(), answerSet);
+				answerSet.setEcfProfileUid(ecfProfile.getProfileUid());
+			}
+			
 			session.saveOrUpdate(answerSet);
 			session.flush();
 			if (!answerSet.getSurvey().getIsDraft()) {
@@ -542,6 +548,11 @@ public class AnswerService extends BasicService {
 			if (filter.getCaseId() != null && filter.getCaseId().length() > 0) {
 				where.append(" AND ans.UNIQUECODE = :uniqueCode");
 				values.put("uniqueCode", filter.getCaseId().trim());
+			}
+			
+			if (filter.getEcfProfileUid() != null && filter.getEcfProfileUid().length() > 0) {
+				where.append(" AND ans.ECF_PROFILE_UID = :profileUid");
+				values.put("profileUid", filter.getEcfProfileUid());
 			}
 
 			if (filter.getDraftId() != null && filter.getDraftId().length() > 0) {

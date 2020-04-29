@@ -16,3 +16,7 @@
 .inlineChart {
 	display: inline-block;
 }
+
+.h-50 {
+	height: 100%;
+}
