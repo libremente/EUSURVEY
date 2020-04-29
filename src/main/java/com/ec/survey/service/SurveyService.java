@@ -72,10 +72,6 @@ public class SurveyService extends BasicService {
 		return 0;
 	}
 
-	public Survey ecfCopy(Survey alreadyCopiedSurvey) {
-		return this.ecfService.copySurveyECFElements(alreadyCopiedSurvey);
-	}
-
 	private Map<Integer, Language> getLanguageMap() {
 		return getLanguages().stream().collect(Collectors.toMap(Language::getId, l -> l));
 	}
