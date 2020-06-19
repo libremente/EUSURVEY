@@ -829,6 +829,8 @@ public class ReportingService {
 		columnNamesToType.put("LANGUAGE", "VARCHAR(2)");
 		columnNamesToType.put("SCORE", "INT");
 		columnNamesToType.put("ECFPROFILEUID", "VARCHAR(255)");
+		columnNamesToType.put("ECFTOTALSCORE", "INT");
+		columnNamesToType.put("ECFTOTALGAP", "INT");
 
 		for (Element question : survey.getQuestions()) {
 			if (question instanceof FreeTextQuestion) {

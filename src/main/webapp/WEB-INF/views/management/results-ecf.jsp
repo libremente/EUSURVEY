@@ -108,25 +108,6 @@
 							code="label.ECF.SortByNameAsc" /></option>
 				</select>
 			</div>
-			<div class="form-group">
-				<label for="select-orderBy"><spring:message
-						code="label.ECF.SortBy" /></label> <select
-					onchange="displayCurrentPageResults()" class="form-control"
-					name="select-orderBy" id="select-orderBy">
-					<option value="gap.asc"><spring:message
-							code="label.ECF.SortByGapAsc" /></option>
-					<option value="gap.desc"><spring:message
-							code="label.ECF.SortByGapDesc" /></option>
-					<option value="score.asc"><spring:message
-							code="label.ECF.SortByScoreAsc" /></option>
-					<option value="score.desc"><spring:message
-							code="label.ECF.SortByScoreDesc" /></option>
-					<option value="name.desc"><spring:message
-							code="label.ECF.SortByNameDesc" /></option>
-					<option value="name.asc" selected="selected"><spring:message
-							code="label.ECF.SortByNameAsc" /></option>
-				</select>
-			</div>
 		</div>
 	</div>
 
