@@ -27,6 +27,7 @@ import com.ec.survey.exception.TooManyFiltersException;
 import com.ec.survey.model.Answer;
 import com.ec.survey.model.AnswerSet;
 import com.ec.survey.model.ResultFilter;
+import com.ec.survey.model.ResultFilter.ResultFilterSortKey;
 import com.ec.survey.model.Setting;
 import com.ec.survey.model.SqlPagination;
 import com.ec.survey.model.survey.ChoiceQuestion;
@@ -379,13 +380,24 @@ public class ReportingService {
 				}			
 			}
 			
-			if (filter.getSortKey() != null && filter.getSortKey().equalsIgnoreCase("score"))
-			{
-				where += " ORDER BY QSCORE " + filter.getSortOrder();
-			} else if (filter.getSortKey() != null && filter.getSortKey().equalsIgnoreCase("date"))
-			{
-				where += " ORDER BY QCREATED " + filter.getSortOrder();
+			if (filter.getSortKey() != null) {
+				switch (ResultFilterSortKey.parse(filter.getSortKey())) {
+					case SCORE:
+						where += " ORDER BY QSCORE " + filter.getSortOrder();
+						break;
+					case CREATED:
+						where += " ORDER BY QCREATED " + filter.getSortOrder();
+						break;
+					case ECFSCORE:
+						where += " ORDER BY QECFTOTALSCORE " + filter.getSortOrder();
+						break;
+					case ECFGAP:
+						where += " ORDER BY QECFTOTALGAP " + filter.getSortOrder();
+						break;
+					default :
+				}
 			}
+			
 		}
 		
 		return where;
@@ -832,6 +844,8 @@ public class ReportingService {
 		columnNamesToType.put("LANGUAGE", "VARCHAR(2)");
 		columnNamesToType.put("SCORE", "INT");
 		columnNamesToType.put("ECFPROFILEUID", "VARCHAR(255)");
+		columnNamesToType.put("ECFTOTALSCORE", "INT");
+		columnNamesToType.put("ECFTOTALGAP", "INT");
 
 		for (Element question : survey.getQuestions()) {
 			if (question instanceof FreeTextQuestion) {
@@ -1198,6 +1212,12 @@ public class ReportingService {
 		
 		columns.add("ECFPROFILEUID");
 		values.add(answerSet.getEcfProfileUid() != null && answerSet.getEcfProfileUid().length() > 0 ? "'" + answerSet.getEcfProfileUid() + "'" : null);
+		
+		columns.add("ECFTOTALSCORE");
+		values.add(answerSet.getEcfTotalScore() != null ? answerSet.getEcfTotalScore().toString() : null);
+		
+		columns.add("ECFTOTALGAP");
+		values.add(answerSet.getEcfTotalGap() != null ? answerSet.getEcfTotalGap().toString() : null);
 		
 		columns.add("ANSWERSETID");
 		values.add(answerSet.getId().toString());

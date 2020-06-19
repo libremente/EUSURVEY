@@ -476,6 +476,22 @@ public class SchedulerService extends BasicService {
 		}
 	}
 	
+	@Scheduled(fixedDelay=600000) //every 10 minutes
+	public void doECFSchedule() throws Exception {
+		
+		if (!isReportingDatabaseEnabled()) return;
+		
+		if(!isHost2ExecuteTask())
+			return;
+		
+		for(Survey survey : surveyService.getAllECFSurveys()) {
+			// Date lastMomentAnswerSubmitted = answerService.getNewestAnswerDate(survey.getId());
+			// Compare with now... if in the 24 hours from now compute the ecf total score and ecf total gap
+			// see updateOLAPTable
+		}
+		
+	}
+	
 	@Scheduled(fixedDelay=10000) //wait for 10 seconds between calls
 	public void doToDosSchedule() throws Exception {
 		

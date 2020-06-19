@@ -3930,6 +3930,17 @@ public class SurveyService extends BasicService {
 			session.save(published);
 		}
 	}
+	
+	@Transactional(readOnly = true)
+	public List<Survey> getAllECFSurveys() {
+		Session session = sessionFactory.getCurrentSession();
+		String sql = "FROM Survey s WHERE s.isECF = true";
+		Query query = session.createQuery(sql);
+
+		@SuppressWarnings("unchecked")
+		List<Survey> result = query.list();
+		return result;
+	}
 
 	@Transactional(readOnly = true)
 	public List<Survey> getDeletedSurveys(DeletedSurveysFilter filter, int page, int rowsPerPage) throws Exception {

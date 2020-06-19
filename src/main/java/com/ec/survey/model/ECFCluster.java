@@ -109,7 +109,9 @@ public class ECFCluster implements Serializable {
 	}
 
 	public void addCompetency(ECFCompetency competency) {
-		this.competencies.add(competency);
+		List<ECFCompetency> newCompetencies = new ArrayList<>();
+		newCompetencies.addAll(this.competencies);
+		this.competencies = newCompetencies;
 	}
 
 	public ECFCluster copy() {

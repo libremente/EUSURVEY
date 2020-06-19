@@ -8,22 +8,22 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ECFGlobalCompetencyResult implements Comparable {
 
-    @JsonProperty("name")
-    private String competencyName;
+	@JsonProperty("name")
+	private String competencyName;
 
-    @JsonProperty("targetScore")
-    private Integer competencyTargetScore;
-    
-    @JsonProperty("scores")
-    private List<Integer> competencyScores = new ArrayList<>();
+	@JsonProperty("targetScore")
+	private Integer competencyTargetScore;
 
-    @JsonProperty("scoreGaps")
-    private List<Integer> competencyScoreGaps = new ArrayList<>();
-    
-    private Integer order;
+	@JsonProperty("scores")
+	private List<Integer> competencyScores = new ArrayList<>();
 
-	@JsonIgnore
-    private List<Integer> questionsScores = new ArrayList<>();
+	@JsonProperty("scoreGaps")
+	private List<Integer> competencyScoreGaps = new ArrayList<>();
+
+	@JsonProperty("participantNames")
+	private List<String> participantsNames = new ArrayList<>();
+
+	private Integer order;
 
 	public String getCompetencyName() {
 		return competencyName;
@@ -48,7 +48,7 @@ public class ECFGlobalCompetencyResult implements Comparable {
 	public void setCompetencyScores(List<Integer> competencyScores) {
 		this.competencyScores = competencyScores;
 	}
-	
+
 	public void addCompetencyScore(Integer competencyScore) {
 		this.competencyScores.add(competencyScore);
 	}
@@ -60,34 +60,37 @@ public class ECFGlobalCompetencyResult implements Comparable {
 	public void setCompetencyScoreGaps(List<Integer> competencyScoreGaps) {
 		this.competencyScoreGaps = competencyScoreGaps;
 	}
-	
+
 	public void addCompetencyScoreGap(Integer scoreGap) {
 		this.competencyScoreGaps.add(scoreGap);
 	}
-	
-	
-	public List<Integer> getQuestionsScores() {
-		return questionsScores;
+
+	public List<String> getParticipantsNames() {
+		return participantsNames;
 	}
 
-	public void setQuestionsScores(List<Integer> questionsScores) {
-		this.questionsScores = questionsScores;
+	public void setParticipantsNames(List<String> participantsNames) {
+		this.participantsNames = participantsNames;
 	}
 	
-    public Integer getOrder() {
+	public void addParticipantsName(String participantsName) {
+		this.participantsNames.add(participantsName);
+	}
+	
+	public Integer getOrder() {
 		return order;
 	}
 
 	public void setOrder(Integer order) {
 		this.order = order;
 	}
-
+	
 
 	@Override
 	public String toString() {
 		return "ECFGlobalCompetencyResult [competencyName=" + competencyName + ", competencyTargetScore="
 				+ competencyTargetScore + ", competencyScores=" + competencyScores + ", competencyScoreGaps="
-				+ competencyScoreGaps + ", order=" + order + ", questionsScores=" + questionsScores + "]";
+				+ competencyScoreGaps + ", participantsNames=" + participantsNames + ", order=" + order + "]";
 	}
 
 	@Override
@@ -99,6 +102,5 @@ public class ECFGlobalCompetencyResult implements Comparable {
 			return 0;
 		}
 	}
-
 
 }

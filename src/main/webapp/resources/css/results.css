@@ -15,8 +15,14 @@
 
 .inlineChart {
 	display: inline-block;
+	margin-top: 3em;
 }
 
 .h-50 {
 	height: 100%;
+}
+
+.headerrow th {
+	text-align: left;
+	vertical-align: top !important;
 }

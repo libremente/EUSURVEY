@@ -15,6 +15,11 @@ function fetchECFResult() {
 	let profileUUID = $( "#select-job-profiles" ).val();
 	let profileUUIDParameter = profileUUID != null ? "&profileUUID=" + profileUUID : "";
 	
+	if (firstTry) {
+		profileUUIDParameter = "";
+		firstTry = false;
+	}
+
 	$.ajax({
 		type:'GET',
 		url: contextpath + "/ecfResultJSON?answerSetId=" + uniqueCode + profileUUIDParameter,
@@ -35,7 +40,7 @@ function fetchECFResult() {
 
 function changeSelectedValue(result) {
 	if (result && result.profileUUID) {
-		$( "#select-job-profiles" ).val(result.profileUUID);
+		$('#select-job-profiles option[value="'+result.profileUUID+'"]').prop('selected', true);
 	}
 }
 
@@ -43,11 +48,12 @@ function displayECFTable(result) {
 	$("#ecfResultTable > tbody").empty();
 	result.competencies.forEach(competency => {
 	let gapColor = (competency.scoreGap>=0) ? 'greenScore' : 'redScore';
-	$("#ecfResultTable > tbody:last-child").append('<tr><td>' + competency.name + '</td>'
-			+ '<td>' + competency.targetScore + '</td>'
-			+ '<td>' + '<div class="score">' + competency.score + '</div>'
+	let displayedGap = (competency.scoreGap>0) ? "+" + competency.scoreGap : competency.scoreGap;
+	$("#ecfResultTable > tbody:last-child").append('<tr class="bodyrow"><th>' + competency.name + '</th>'
+			+ '<th>' + competency.targetScore + '</th>'
+			+ '<th>' + '<div class="score">' + competency.score + '</div>'
 			+ '<div class="gap ' + gapColor + '">&nbsp;('
-			+ competency.scoreGap + ')</div>' + '</td>'
+			+ displayedGap + ')</div>' + '</th>'
 			+ '</tr>')
 			});
 }
@@ -63,6 +69,7 @@ function displayECFChart(result) {
 			competencies.push(competency.name);
 			targetScores.push(competency.targetScore);
 		});
+		let chartTitle = 'Comparison between your results and ' + result.name + '\'s expected scores';
 		
 		var ctx = $("#ecfRespondentChart");
 		var options = {
@@ -75,6 +82,10 @@ function displayECFChart(result) {
 			            suggestedMax: 4
 			        }
 				},
+			title: {
+				display: true,
+			    text: chartTitle
+			},
 			maintainAspectRatio: true,
 			spanGaps: false,
 			elements: {

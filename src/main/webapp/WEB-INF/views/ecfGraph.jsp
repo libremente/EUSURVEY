@@ -4,11 +4,11 @@
 	</p>
 	<c:if test="${!print}">
 		<div class="form-group">
-			<label for="select-job-profiles">Profile Filter:</label> <select
+			<label for="select-job-profiles"><spring:message code="label.ECF.ProfileFilter" /></label> <select
 				onchange="fetchECFResult()" class="form-control"
 				name="select-job-profiles" id="select-job-profiles">
 				<c:forEach var="profile" items="${ecfProfiles}" varStatus="loop">
-					<option value="${profile.profileUid}" selected="selected">
+					<option value="${profile.profileUid}">
 						${profile.name}</option>
 				</c:forEach>
 			</select>
@@ -20,7 +20,7 @@
 		<thead>
 			<tr class="headerrow">
 				<th><spring:message code="label.ECF.Competencies" /></th>
-				<th><spring:message code="label.ECF.Target" /></th>
+				<th	id="targetScore"><spring:message code="label.ECF.Target" /></th>
 				<th><spring:message code="label.ECF.Scores" /></th>
 			</tr>
 		</thead>
@@ -31,6 +31,7 @@
 
 
 <script type="text/javascript">
+	var firstTry = true;
 	$(document).ready(function() {
 		const result = fetchECFResult();
 	});

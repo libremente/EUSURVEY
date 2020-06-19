@@ -85,7 +85,9 @@
 								<th>${competencyResult.competencyName}</th>
 								<th>${competencyResult.competencyTargetScore}</th>
 								<th>${competencyResult.competencyAverageScore}</th>
-								<th>${competencyResult.competencyMaxScore}</th>
+								<th><div>
+										<div class="score">${competencyResult.competencyMaxScore}</div>
+									</div></th>
 							</tr>
 						</c:forEach>
 					</c:if>

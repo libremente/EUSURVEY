@@ -3,6 +3,7 @@ package com.ec.survey.service;
 import com.ec.survey.exception.SmtpServerNotConfiguredException;
 import com.ec.survey.exception.TooManyFiltersException;
 import com.ec.survey.model.*;
+import com.ec.survey.model.ResultFilter.ResultFilterSortKey;
 import com.ec.survey.model.administration.Role;
 import com.ec.survey.model.administration.User;
 import com.ec.survey.model.attendees.Attendee;
@@ -168,8 +169,7 @@ public class AnswerService extends BasicService {
 			boolean newAnswer = answerSet.getId() == null;
 			
 			if (answerSet.getSurvey().getIsECF()) {
-				ECFProfile ecfProfile = this.ecfService.getECFProfile(answerSet.getSurvey(), answerSet);
-				answerSet.setEcfProfileUid(ecfProfile.getProfileUid());
+				this.ecfService.setAnswerSetECFComponents(answerSet.getSurvey(), answerSet);
 			}
 			
 			session.saveOrUpdate(answerSet);
@@ -714,11 +714,21 @@ public class AnswerService extends BasicService {
 					}
 				}
 			}
-
-			if (filter.getSortKey() != null && filter.getSortKey().equalsIgnoreCase("score")) {
+			
+			switch (ResultFilterSortKey.parse(filter.getSortKey())) {
+			case SCORE:
 				where.append(" ORDER BY ans.SCORE ").append(filter.getSortOrder());
-			} else if (filter.getSortKey() != null && filter.getSortKey().equalsIgnoreCase("date")) {
+				break;
+			case DATE:
 				where.append(" ORDER BY ans.ANSWER_SET_DATE ").append(filter.getSortOrder());
+				break;
+			case ECFSCORE:
+				where.append(" ORDER BY ans.QECFTOTALSCORE " ).append(filter.getSortOrder());
+				break;
+			case ECFGAP:
+				where.append(" ORDER BY ans.QECFTOTALGAP ").append(filter.getSortOrder());
+				break;
+			default :
 			}
 		}
 

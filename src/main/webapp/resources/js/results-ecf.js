@@ -90,8 +90,7 @@
 					+ '<th>' + targetScore + '</th>'
 					+ displayScoresColumn(individualResult.scores, individualResult.scoreGaps)
 					+ '</tr>');
-			
-			displayIndividuals(individualResult.scores);
+			displayIndividuals(individualResult.participantNames);
 		});
 		
 		
@@ -115,7 +114,7 @@
 		let scoreClass = displayScore ? 'score' : 'score hidden';
 		let gapClass = displayGap ? 'gap ' : 'gap hidden ';
 		let gapColor = (gap>=0) ? 'greenScore' : 'redScore';
-		let gapDisplayed = (gap>=0) ? '+' + gap : gap; 
+		let gapDisplayed = (gap>0) ? '+' + gap : gap; 
 		
 		let scoreDiv = '<div class="'
 			+ scoreClass
@@ -212,11 +211,11 @@
 		fetchECFResults(ecfResultPage, 10);
 	}
 	
-	function displayIndividuals(competencyScores) {
+	function displayIndividuals(participantNames) {
 		$("#ecfResultTable > thead > .headerrow > th.individual").remove();
 		let i = (ecfResultPage - 1) * 10;
-		competencyScores.forEach(competencyScore => {
-			$("#ecfResultTable > thead > .headerrow").append('<th class="individual">Individual ' + (i + 1) +'</th>');
+		participantNames.forEach(participantName => {
+			$("#ecfResultTable > thead > .headerrow").append('<th class="individual">' + participantName +'</th>');
 			i++;
 		});
 	}
@@ -255,16 +254,47 @@
 		$("#ecfResultTable2 > tbody").empty();
 		profileAssessmentResult.competencyResults.forEach(competencyResult => {
 			let targetScore = "";
+			let averageScore = "";
+			
 			if (competencyResult.competencyTargetScore) {
 				targetScore = competencyResult.competencyTargetScore;
+			}
+			
+			if (competencyResult.competencyAverageScore) {
+				averageScore = competencyResult.competencyAverageScore;
+			}
+			
+			let competencyMaxScoreDiv = '';
+				
+			if (competencyResult.competencyMaxScore) {
+				competencyMaxScoreDiv = '<div class="'
+					+ 'score'
+					+ '">'
+					+ competencyResult.competencyMaxScore 
+					+ '</div>';
+			}
+			
+			let gapDiv = '';
+			
+			let gap = competencyResult.competencyScoreGap;
+			let gapColor = (gap>=0) ? 'greenScore' : 'redScore';
+			let gapDisplayed = (gap>0) ? '+' + gap : gap; 
+			
+			if (gap != null && gap != undefined) {
+				gapDiv = '<div class="' 
+					+ 'gap '
+					+ gapColor 
+					+ '">&nbsp; (' 
+					+ gapDisplayed
+					+ ')</div>';
 			}
 			
 			$("#ecfResultTable2 > tbody:last-child")
 			.append('<tr class="bodyrow">'
 					+ '<th>' + competencyResult.competencyName + '</th>'
 					+ '<th>' + targetScore + '</th>'
-					+ '<th>' + competencyResult.competencyAverageScore + '</th>'
-					+ '<th>' + competencyResult.competencyMaxScore + '</th>'
+					+ '<th>' + averageScore + '</th>'
+					+ '<th>' + '<div>' + competencyMaxScoreDiv + gapDiv + '</div>' + '</th>'
 					+ '</tr>');
 		});
 	}
