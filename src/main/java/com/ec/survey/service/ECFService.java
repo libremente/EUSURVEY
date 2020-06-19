@@ -31,6 +31,7 @@ import com.ec.survey.model.ECFExpectedScoreToProfileEid;
 import com.ec.survey.model.ECFProfile;
 import com.ec.survey.model.ECFType;
 import com.ec.survey.model.ResultFilter;
+import com.ec.survey.model.ResultFilter.ResultFilterOrderBy;
 import com.ec.survey.model.SqlPagination;
 import com.ec.survey.model.survey.ChoiceQuestion;
 import com.ec.survey.model.survey.Element;
@@ -238,6 +239,7 @@ public class ECFService extends BasicService {
 			profileCompetencyResult.setCompetencyName(competency.getName());
 			profileCompetencyResult.setOrder(competency.getOrderNumber());
 			List<Integer> scores = competenciesToScores.get(competency);
+			Integer targetScore = competencyToTargetScore.get(competency);
 
 			if (scores.size() != 0) {
 				Integer maxScore = 0;
@@ -252,9 +254,13 @@ public class ECFService extends BasicService {
 				float averageScore = (float) Math.round((totalScore.floatValue() / scores.size()) * 10) / 10;
 				profileCompetencyResult.setCompetencyAverageScore(averageScore);
 				profileCompetencyResult.setCompetencyMaxScore(maxScore);
-			}
-			profileCompetencyResult.setCompetencyTargetScore(competencyToTargetScore.get(competency));
 
+				if (targetScore != null) {
+					profileCompetencyResult.setCompetencyScoreGap(maxScore - targetScore);
+				}
+
+			}
+			profileCompetencyResult.setCompetencyTargetScore(targetScore);
 			profileResult.addIndividualResults(profileCompetencyResult);
 		}
 		return profileResult;
@@ -288,6 +294,87 @@ public class ECFService extends BasicService {
 			competencyToExpectedScore.put(competency, expectedScore.getScore());
 		}
 		return competencyToExpectedScore;
+	}
+
+	/**
+	 * Returns the mapping between the competencies and the scores the answerSets
+	 * could get
+	 */
+	private Map<ECFCompetency, List<ParticipantScore>> getCompetenciesToParticipantScores(Survey survey,
+			List<AnswerSet> answerSets) throws ECFException {
+		Map<ECFCompetency, List<ParticipantScore>> competencyToScores = new HashMap<>();
+		Set<Question> ecfQuestions = new HashSet<>();
+
+		// Target the competency questions
+		for (Element element : survey.getElements()) {
+			if (element instanceof Question) {
+				Question question = (Question) element;
+				if (question instanceof SingleChoiceQuestion && question.getEcfCompetency() != null) {
+					competencyToScores.put(question.getEcfCompetency(), new ArrayList<>());
+					ecfQuestions.add(question);
+				}
+			}
+		}
+
+		// For each individual
+		for (int i = 0; i < answerSets.size(); i++) {
+			AnswerSet answerSet = answerSets.get(i);
+			Map<ECFCompetency, Integer> competencyToNumberOfAnswers = new HashMap<>();
+			Map<ECFCompetency, Integer> competencyToTotalAnsweredNumbers = new HashMap<>();
+
+			// Pass through his answers
+			for (Question question : ecfQuestions) {
+				List<Answer> answers = answerSet.getAnswers(question.getId(), question.getUniqueId());
+				if (answers.size() == 0)
+					continue;
+				Answer answer = answers.get(0);
+				SingleChoiceQuestion choiceQuestion = (SingleChoiceQuestion) question;
+				PossibleAnswer answeredPossibleAnswer = choiceQuestion
+						.getPossibleAnswerByUniqueId(answer.getPossibleAnswerUniqueId());
+				if (answeredPossibleAnswer != null) {
+					char lastCharInShortName = answeredPossibleAnswer.getShortname()
+							.charAt(answeredPossibleAnswer.getShortname().length() - 1);
+					Integer answeredNumber = answeredPossibleAnswer.getEcfScore();
+					if (answeredNumber > 4 || answeredNumber < 0) {
+						throw new ECFException("An ECF possible answer cannot be over 4");
+					}
+
+					ECFCompetency questionCompetency = question.getEcfCompetency();
+
+					if (competencyToTotalAnsweredNumbers.containsKey(questionCompetency)) {
+						Integer previousNumber = competencyToTotalAnsweredNumbers.get(questionCompetency);
+						competencyToTotalAnsweredNumbers.put(questionCompetency, previousNumber + answeredNumber);
+					} else {
+						competencyToTotalAnsweredNumbers.put(questionCompetency, answeredNumber);
+					}
+
+					if (competencyToNumberOfAnswers.containsKey(question.getEcfCompetency())) {
+						Integer previousNumber = competencyToNumberOfAnswers.get(question.getEcfCompetency());
+						competencyToNumberOfAnswers.put(questionCompetency, previousNumber + 1);
+					} else {
+						competencyToNumberOfAnswers.put(questionCompetency, 1);
+					}
+				}
+			}
+			for (ECFCompetency competency : competencyToNumberOfAnswers.keySet()) {
+				Integer numberOfAnswers = competencyToNumberOfAnswers.get(competency);
+				Integer totalNumber = competencyToTotalAnsweredNumbers.get(competency);
+				
+				ParticipantScore participantScore = new ParticipantScore();
+				if (answerSet.getResponderEmail() != null && !answerSet.getResponderEmail().isEmpty()) {
+					participantScore.setName(answerSet.getResponderEmail());
+				} else {
+					participantScore.setName("Individual " + (i + 1));
+				}
+				participantScore.setScore(totalNumber / numberOfAnswers);
+				
+				List<ParticipantScore> listOfScores = competencyToScores.get(competency);
+				listOfScores.add(participantScore);
+				competencyToScores.put(competency, listOfScores);
+			}
+			// next individual
+		}
+		return competencyToScores;
 	}
 
 	/**
@@ -371,12 +458,17 @@ public class ECFService extends BasicService {
 		return this.getECFGlobalResult(survey, sqlPagination, profileComparison, null);
 	}
 
+	public ECFGlobalResult getECFGlobalResult(Survey survey, SqlPagination sqlPagination, ECFProfile profileComparison,
+			ECFProfile profileFilter) throws Exception {
+		return this.getECFGlobalResult(survey, sqlPagination, profileComparison, null, null);
+	}
+
 	/**
 	 * Returns the ECFGlobalResult for the given Survey, Pagination, and optional
 	 * EcfProfile
 	 */
 	public ECFGlobalResult getECFGlobalResult(Survey survey, SqlPagination sqlPagination, ECFProfile profileComparison,
-			ECFProfile profileFilter) throws Exception {
+			ECFProfile profileFilter, String orderBy) throws Exception {
 		if (survey == null || !survey.getIsECF()) {
 			throw new IllegalArgumentException("survey needs to be ECF to parse ECF results");
 		}
@@ -388,9 +480,7 @@ public class ECFService extends BasicService {
 		if (profileFilter != null) {
 			result.setProfileFilterUid(profileFilter.getProfileUid());
 		}
-
-		List<AnswerSet> answerSets = profileFilter != null ? this.getAnswers(survey, profileFilter, sqlPagination)
-				: this.getAnswers(survey, sqlPagination);
+		List<AnswerSet> answerSets = this.getAnswers(survey, profileFilter, orderBy, sqlPagination);
 
 		Integer countAnswers = profileFilter != null ? this.getCount(survey, profileFilter) : this.getCount(survey);
 
@@ -401,21 +491,24 @@ public class ECFService extends BasicService {
 			competencyToExpectedScore = this.getProfileExpectedScores(profileComparison);
 		}
 
-		Map<ECFCompetency, List<Integer>> competenciesToScores = this.getCompetenciesToScores(survey, answerSets);
+		Map<ECFCompetency, List<ParticipantScore>> competenciesToScores = this.getCompetenciesToParticipantScores(survey, answerSets);
 
 		for (ECFCompetency competency : competenciesToScores.keySet()) {
-			List<Integer> competencyScores = competenciesToScores.get(competency);
+			List<ParticipantScore> competencyScores = competenciesToScores.get(competency);
+			List<Integer> competencyScoresNumbers = competencyScores.stream().map(ps -> ps.getScore()).collect(Collectors.toList());
+			List<String> competencyScoresNames = competencyScores.stream().map(ps -> ps.getName()).collect(Collectors.toList());
 
 			ECFGlobalCompetencyResult globalCompetencyResult = new ECFGlobalCompetencyResult();
 			globalCompetencyResult.setOrder(competency.getOrderNumber());
 			globalCompetencyResult.setCompetencyName(competency.getName());
-			globalCompetencyResult.setCompetencyScores(competencyScores);
+			globalCompetencyResult.setCompetencyScores(competencyScoresNumbers);
+			globalCompetencyResult.setParticipantsNames(competencyScoresNames);
 
 			if (competencyToExpectedScore.containsKey(competency)) {
 				Integer targetScore = competencyToExpectedScore.get(competency);
 				globalCompetencyResult.setCompetencyTargetScore(targetScore);
 
-				for (Integer competencyScore : competencyScores) {
+				for (Integer competencyScore : competencyScoresNumbers) {
 					globalCompetencyResult.addCompetencyScoreGap(competencyScore - targetScore);
 					;
 				}
@@ -510,6 +603,46 @@ public class ECFService extends BasicService {
 		return ecfIndividualResult;
 	}
 
+	/***
+	 * Sets the ECFparts of an AnswerSet.
+	 */
+	public void setAnswerSetECFComponents(final Survey survey, AnswerSet answerSet) throws ECFException {
+		ECFProfile profile = this.getECFProfile(survey, answerSet);
+
+		Map<ECFCompetency, Integer> competenciesToExpectedScores = null;
+		if (profile != null) {
+			answerSet.setEcfProfileUid(profile.getProfileUid());
+			competenciesToExpectedScores = this.getProfileExpectedScores(profile);
+		}
+
+		List<AnswerSet> answerSets = Arrays.asList(answerSet);
+		Map<ECFCompetency, List<Integer>> competenciesToScores = this.getCompetenciesToScores(survey, answerSets);
+
+		Integer totalScore = 0;
+		Integer totalGap = 0;
+		for (ECFCompetency competency : competenciesToScores.keySet()) {
+			List<Integer> scores = competenciesToScores.get(competency);
+			if (scores.size() > 1)
+				throw new ECFException("This was not supposed to happen");
+			totalScore = totalScore + scores.get(0);
+
+			if (profile != null) {
+				Integer expectedScore = competenciesToExpectedScores.get(competency);
+				if (expectedScore == null) {
+					throw new ECFException("Profile " + profile.getProfileUid() + " to Competency "
+							+ competency.getCompetenceUid() + " do not seem to have an expected score");
+				}
+				Integer gap = scores.get(0) - expectedScore;
+				totalGap = totalGap + gap;
+			}
+		}
+		answerSet.setEcfTotalScore(totalScore);
+
+		if (profile != null) {
+			answerSet.setEcfTotalGap(totalGap);
+		}
+	}
+
 	/**
 	 * Returns the ECFProfile an answerer has entered in the answerSet, for a
 	 * specific ECF survey
@@ -560,13 +693,13 @@ public class ECFService extends BasicService {
 		competencyToCluster.put("C1 - Planning", "Horizontal");
 		competencyToCluster.put("C2 - Lifecycle", "Horizontal");
 		competencyToCluster.put("C3 - Legislation", "Horizontal");
-		competencyToCluster.put("C4 - e-Procurement & other IT tools", "Horizontal");
+		competencyToCluster.put("C4 - e-Procurement and other IT tools", "Horizontal");
 		competencyToCluster.put("C5 - Sustainable procurement", "Horizontal");
 		competencyToCluster.put("C6 - Innovation Procurement", "Horizontal");
 		competencyToCluster.put("C7 - Category specific", "Horizontal");
 		competencyToCluster.put("C8 - Supplier management", "Horizontal");
 		competencyToCluster.put("C9 - Negotiations", "Horizontal");
-		competencyToCluster.put("C10 - Negotiations", "Pre-award");
+		competencyToCluster.put("C10 - Needs assessment", "Pre-award");
 		competencyToCluster.put("C11 - Market analysis and market engagement", "Pre-award");
 		competencyToCluster.put("C12 - Procurement strategy", "Pre-award");
 		competencyToCluster.put("C13 - Technical specifications", "Pre-award");
@@ -595,13 +728,13 @@ public class ECFService extends BasicService {
 		competencyToOrder.put("C1 - Planning", 1);
 		competencyToOrder.put("C2 - Lifecycle", 2);
 		competencyToOrder.put("C3 - Legislation", 3);
-		competencyToOrder.put("C4 - e-Procurement & other IT tools", 4);
+		competencyToOrder.put("C4 - e-Procurement and other IT tools", 4);
 		competencyToOrder.put("C5 - Sustainable procurement", 5);
 		competencyToOrder.put("C6 - Innovation Procurement", 6);
 		competencyToOrder.put("C7 - Category specific", 7);
 		competencyToOrder.put("C8 - Supplier management", 8);
 		competencyToOrder.put("C9 - Negotiations", 9);
-		competencyToOrder.put("C10 - Negotiations", 10);
+		competencyToOrder.put("C10 - Needs assessment", 10);
 		competencyToOrder.put("C11 - Market analysis and market engagement", 11);
 		competencyToOrder.put("C12 - Procurement strategy", 12);
 		competencyToOrder.put("C13 - Technical specifications", 13);
@@ -633,7 +766,286 @@ public class ECFService extends BasicService {
 		profileToCompetencyToScore.put("Category specialist", this.defaultCategorySpecialist());
 		profileToCompetencyToScore.put("Contract manager", this.defaultContractManager());
 		profileToCompetencyToScore.put("Department manager", this.defaultDepartmentManager());
+		profileToCompetencyToScore.put("Neutral profile", this.defaultNeutralProfile());
 		return profileToCompetencyToScore;
+	}
+
+	public Map<Integer, String> defaultQuestionNumberToAnswerText() {
+		Map<Integer, String> questionNumberToAnswerText = new HashMap<>();
+		questionNumberToAnswerText.put(0, "Knowledge question");
+		questionNumberToAnswerText.put(1, "Skill question");
+		return questionNumberToAnswerText;
+	}
+
+	public Map<Integer, Map<Integer, String>> defaultCompetencyNumberToQuestionNumberToText() {
+		Map<Integer, Map<Integer, String>> competencyNumberToQuestionNumberToText = new HashMap<>();
+
+		Map<Integer, String> questionNumberToText1 = new HashMap<>();
+		questionNumberToText1.put(1,
+				"Knowledge question: How well do you know your organisation's procurement planning, policy priorities and budget?");
+		questionNumberToText1.put(2,
+				"Skill question: To what extent are you able to develop a procurement plan according to available budget resources?");
+		competencyNumberToQuestionNumberToText.put(1, questionNumberToText1);
+
+		Map<Integer, String> questionNumberToText2 = new HashMap<>();
+		questionNumberToText2.put(1,
+				"Knowledge question: How well do you know the different phases of the procurement lifecycle, from pre-publication to post-award?");
+		questionNumberToText2.put(2,
+				"Skill question: To what extent are you able to follow the various phases of the procurement lifecycle?");
+		competencyNumberToQuestionNumberToText.put(2, questionNumberToText2);
+
+		Map<Integer, String> questionNumberToText3 = new HashMap<>();
+		questionNumberToText3.put(1,
+				"Knowledge question: How well do you know the legislation on public procurement and other relevant areas of law?");
+		questionNumberToText3.put(2,
+				"Skill question: To what extent are you able to apply specific aspects of the procurement legislation, as well as other legal frameworks impacting procurement ?");
+		competencyNumberToQuestionNumberToText.put(3, questionNumberToText3);
+
+		Map<Integer, String> questionNumberToText4 = new HashMap<>();
+		questionNumberToText4.put(1,
+				"Knowledge question: How well do you know e-Procurement and other IT systems and tools?");
+		questionNumberToText4.put(2,
+				"Skill question: To what extent are you able use e-procurement and other IT systems and tools?");
+		competencyNumberToQuestionNumberToText.put(4, questionNumberToText4);
+
+		Map<Integer, String> questionNumberToText5 = new HashMap<>();
+		questionNumberToText5.put(1,
+				"Knowledge question: How well do you know the relevant sustainability policies and how to promote them?");
+		questionNumberToText5.put(2,
+				"Skill question: How well do you know incorporate environmental and sustainable objectives set by the organisation and national policies into the procurement process?");
+		competencyNumberToQuestionNumberToText.put(5, questionNumberToText5);
+
+		Map<Integer, String> questionNumberToText6 = new HashMap<>();
+		questionNumberToText6.put(1,
+				"Knowledge question: How well do you know the relevant innovation policies and how to promote them?");
+		questionNumberToText6.put(2,
+				"Skill question: To what extent are you able to incorporate innovation objectives set by the organisation and national policies into the procurement process?");
+		competencyNumberToQuestionNumberToText.put(6, questionNumberToText6);
+
+		Map<Integer, String> questionNumberToText7 = new HashMap<>();
+		questionNumberToText7.put(1,
+				"Knowledge question: How well do you know the features and specificities of one or more specific category of supplies, services or works?");
+		questionNumberToText7.put(2,
+				"Skill question: To what extent are you able to get the most out of one or more category of supplies, services or works?");
+		competencyNumberToQuestionNumberToText.put(7, questionNumberToText7);
+
+		Map<Integer, String> questionNumberToText8 = new HashMap<>();
+		questionNumberToText8.put(1,
+				"Knowledge question: How well do you know supplier management strategies and processes?");
+		questionNumberToText8.put(2,
+				"Skill question: To what extent are you able to develop, manage and maintain relationship with suppliers while respecting public procurement principles?");
+		competencyNumberToQuestionNumberToText.put(8, questionNumberToText8);
+
+		Map<Integer, String> questionNumberToText9 = new HashMap<>();
+		questionNumberToText9.put(1,
+				"Knowledge question: How well do you know negotiation processes relevant in public procurement?");
+		questionNumberToText9.put(2,
+				"Skill question: To what extent are we able to apply negotiation processes strategies during the procurement phases and contract management in accordance with public procurement principles and ethical standards?");
+		competencyNumberToQuestionNumberToText.put(9, questionNumberToText9);
+
+		Map<Integer, String> questionNumberToText10 = new HashMap<>();
+		questionNumberToText10.put(1,
+				"Knowledge question: How well do you know needs identification tools and techniques?");
+		questionNumberToText10.put(2,
+				"Skill question: To what extent are you able to apply needs assessment techniques and tools for determining needs of the organisation and end-users regarding the subject-matter of the procurement?");
+		competencyNumberToQuestionNumberToText.put(10, questionNumberToText10);
+
+		Map<Integer, String> questionNumberToText11 = new HashMap<>();
+		questionNumberToText11.put(1,
+				"Knowledge question: How well do you know market analysis tools and appropriate market engagement techniques?");
+		questionNumberToText11.put(2,
+				"Skill question: To what extent are you able to use market analysis and market engagement techniques to understand the characteristics and trends of the supplier market?");
+		competencyNumberToQuestionNumberToText.put(11, questionNumberToText11);
+
+		Map<Integer, String> questionNumberToText12 = new HashMap<>();
+		questionNumberToText12.put(1,
+				"Knowledge question: How well do you know the different procurement strategies, such as procedure types, use of lots, and kinds of contracts?");
+		questionNumberToText12.put(2,
+				"Skill question: To what extent are you able to determine among the range of available procurement strategies the one that fits best to the procurement at stake while reaching the organisation’s objectives?");
+		competencyNumberToQuestionNumberToText.put(12, questionNumberToText12);
+
+		Map<Integer, String> questionNumberToText13 = new HashMap<>();
+		questionNumberToText13.put(1,
+				"Knowledge question: How well do you know the requirements of drafting technical specifications?");
+		questionNumberToText13.put(2,
+				"Skill question: To what extent are you able to draft technical specifications that enable potential bidders to submit realistic offers that address the needs of the organisation?");
+		competencyNumberToQuestionNumberToText.put(13, questionNumberToText13);
+
+		Map<Integer, String> questionNumberToText14 = new HashMap<>();
+		questionNumberToText14.put(1,
+				"Knowledge question: How well do you know the requirements of preparing tender documentation?");
+		questionNumberToText14.put(2,
+				"Skill question: To what extent are you able to prepare procurement documentation including appropriate exclusion, selection and award criteria?");
+		competencyNumberToQuestionNumberToText.put(14, questionNumberToText14);
+
+		Map<Integer, String> questionNumberToText15 = new HashMap<>();
+		questionNumberToText15.put(1, "Knowledge question: How well do you know the evaluation process?");
+		questionNumberToText15.put(2,
+				"Skill question: To what extent are you able to evaluate offers against pre-defined criteria in an objective and transparent way?");
+		competencyNumberToQuestionNumberToText.put(15, questionNumberToText15);
+
+		Map<Integer, String> questionNumberToText16 = new HashMap<>();
+		questionNumberToText16.put(1,
+				"Knowledge question: How well do you know the principles of contract management?");
+		questionNumberToText16.put(2,
+				"Skill question: To what extent are you able to oversee contract implementation while ensuring technical compliance of the good, work or service delivered?");
+		competencyNumberToQuestionNumberToText.put(16, questionNumberToText16);
+
+		Map<Integer, String> questionNumberToText17 = new HashMap<>();
+		questionNumberToText17.put(1,
+				"Knowledge question: How well do you know the process for certification and payment?");
+		questionNumberToText17.put(2,
+				"Skill question: To what extent are you able to apply verification principles and the financial control framework to verify the legal compliance of the procurement contract before proceeding to payment?");
+		competencyNumberToQuestionNumberToText.put(17, questionNumberToText17);
+
+		Map<Integer, String> questionNumberToText18 = new HashMap<>();
+		questionNumberToText18.put(1,
+				"Knowledge question: How well do you know contract monitoring tools and techniques?");
+		questionNumberToText18.put(2,
+				"Skill question: To what extent are you able to evaluate the process, deliverables and outcomes of a procurement to draw lessons on how to improve the performance of future procurements?");
+		competencyNumberToQuestionNumberToText.put(18, questionNumberToText18);
+
+		Map<Integer, String> questionNumberToText19 = new HashMap<>();
+		questionNumberToText19.put(1,
+				"Knowledge question: How well do you know conflict resolution and mediation processes and the functioning of the review system?");
+		questionNumberToText19.put(2,
+				"Skill question: To what extent are you able to prevent and resolve conflicts and manage complaints in the framework of the national review system?");
+		competencyNumberToQuestionNumberToText.put(19, questionNumberToText19);
+
+		Map<Integer, String> questionNumberToText20 = new HashMap<>();
+		questionNumberToText20.put(1,
+				"Knowledge question: How well do you know change management techniques and tools?");
+		questionNumberToText20.put(2,
+				"Skill question: To what extent are you able to anticipate and accommodate to changing tasks and circumstances and aim to continuously learn and grow?");
+		competencyNumberToQuestionNumberToText.put(20, questionNumberToText20);
+
+		Map<Integer, String> questionNumberToText21 = new HashMap<>();
+		questionNumberToText21.put(1,
+				"Knowledge question: How well do you know analytical and critical thinking approaches and tools?");
+		questionNumberToText21.put(2,
+				"Skill question: To what extent are you able to use analytical and critical thinking in evaluating an information and/ or a situation and solving problems?");
+		competencyNumberToQuestionNumberToText.put(21, questionNumberToText21);
+
+		Map<Integer, String> questionNumberToText22 = new HashMap<>();
+		questionNumberToText22.put(1,
+				"Knowledge question: How well do you know communication tools and techniques and how to apply the public procurement principles in various communication situations?");
+		questionNumberToText22.put(2,
+				"Skill question: To what extent are you able to communicate effectively by adapting the communication medium and message to the target audience while ensuring public procurement principles are respected?");
+		competencyNumberToQuestionNumberToText.put(22, questionNumberToText22);
+
+		Map<Integer, String> questionNumberToText23 = new HashMap<>();
+		questionNumberToText23.put(1,
+				"Knowledge question: How well do you know the procedural rules and principles as well as tools, codes and guidance document that help ensure adherence thereto?");
+		questionNumberToText23.put(2,
+				"Skill question: To what extent are you able to ensure compliance with applicable public procurement rules, principles, and ethical standards?");
+		competencyNumberToQuestionNumberToText.put(23, questionNumberToText23);
+
+		Map<Integer, String> questionNumberToText24 = new HashMap<>();
+		questionNumberToText24.put(1, "Knowledge question: How well do you know collaboration tools and techniques?");
+		questionNumberToText24.put(2,
+				"Skill question: To what extent are you able to promote inclusive and collaborative thinking and processes?");
+		competencyNumberToQuestionNumberToText.put(24, questionNumberToText24);
+
+		Map<Integer, String> questionNumberToText25 = new HashMap<>();
+		questionNumberToText25.put(1,
+				"Knowledge question: How well do you know the key concepts and methods of stakeholder management?");
+		questionNumberToText25.put(2,
+				"Skill question: To what extent are you able to create mutual trust that contribute to solid internal and external stakeholder relationships?");
+		competencyNumberToQuestionNumberToText.put(25, questionNumberToText25);
+
+		Map<Integer, String> questionNumberToText26 = new HashMap<>();
+		questionNumberToText26.put(1,
+				"Knowledge question: How well do you know the key concepts and methods of team management?");
+		questionNumberToText26.put(2,
+				"Skill question: To what extent are you able to tailor management and leadership methods and techniques to the team and circumstances thereby creating a conducive environment for achieving common goals?");
+		competencyNumberToQuestionNumberToText.put(26, questionNumberToText26);
+
+		Map<Integer, String> questionNumberToText27 = new HashMap<>();
+		questionNumberToText27.put(1,
+				"Knowledge question: How well do you know your organisation’s administrative structure, procedures and processes, internal culture and legal and policy framework?");
+		questionNumberToText27.put(2,
+				"Skill question: To what extent are you able to understand both the procurement function and the organisation’s structure and culture?");
+		competencyNumberToQuestionNumberToText.put(27, questionNumberToText27);
+
+		Map<Integer, String> questionNumberToText28 = new HashMap<>();
+		questionNumberToText28.put(1,
+				"Knowledge question: How well do you know project management tools and techniques relevant for the public administration?");
+		questionNumberToText28.put(2,
+				"Skill question: To what extent are you able to apply project management tools and techniques to effectively carry out a procurement procedure and contract ?");
+		competencyNumberToQuestionNumberToText.put(28, questionNumberToText28);
+
+		Map<Integer, String> questionNumberToText29 = new HashMap<>();
+		questionNumberToText29.put(1,
+				"Knowledge question: How well do you know cost and performance management strategies and methods as well as Key Performance Indicators (KPIs) that help identify inefficiencies and monitor the financial performance of the procurement and the way it delivers value for money?");
+		questionNumberToText29.put(2,
+				"Skill question: To what extent are you able to apply commercial and performance management strategies and methods to maximise value for money of procurement contracts?");
+		competencyNumberToQuestionNumberToText.put(29, questionNumberToText29);
+
+		Map<Integer, String> questionNumberToText30 = new HashMap<>();
+		questionNumberToText30.put(1, "Knowledge question: How well do you know audit and control functions?");
+		questionNumberToText30.put(2,
+				"Skill question: To what extent are you able to carry out the different functions of inspection, control, audit, and evaluation applicable to public procurement?");
+		competencyNumberToQuestionNumberToText.put(30, questionNumberToText30);
+
+		return competencyNumberToQuestionNumberToText;
+
+	}
+
+	public Map<Integer, Map<Integer, String>> defaultQuestionNumberToAnswerToText() {
+		Map<Integer, String> answerNumberToText0 = new HashMap<>();
+		answerNumberToText0.put(0, "I have no knowledge");
+		answerNumberToText0.put(1, "I have basic knowledge");
+		answerNumberToText0.put(2, "I have intermediate knowledge");
+		answerNumberToText0.put(3, "I have advanced knowledge");
+		answerNumberToText0.put(4, "I have expert knowledge");
+
+		Map<Integer, String> answerNumberToText1 = new HashMap<>();
+		answerNumberToText1.put(0, "I have no skills");
+		answerNumberToText1.put(1, "I have basic skills");
+		answerNumberToText1.put(2, "I have intermediate skills");
+		answerNumberToText1.put(3, "I have advanced skills");
+		answerNumberToText1.put(4, "I have expert skills");
+
+		Map<Integer, Map<Integer, String>> questionNumberToAnswerToText = new HashMap<>();
+		questionNumberToAnswerToText.put(0, answerNumberToText0);
+		questionNumberToAnswerToText.put(1, answerNumberToText1);
+
+		return questionNumberToAnswerToText;
+	}
+
+	private Map<String, Integer> defaultNeutralProfile() {
+		Map<String, Integer> competencyToScore = new HashMap<>();
+		competencyToScore.put("C1 - Planning", 0);
+		competencyToScore.put("C2 - Lifecycle", 0);
+		competencyToScore.put("C3 - Legislation", 0);
+		competencyToScore.put("C4 - e-Procurement and other IT tools", 0);
+		competencyToScore.put("C5 - Sustainable procurement", 0);
+		competencyToScore.put("C6 - Innovation Procurement", 0);
+		competencyToScore.put("C7 - Category specific", 0);
+		competencyToScore.put("C8 - Supplier management", 0);
+		competencyToScore.put("C9 - Negotiations", 0);
+		competencyToScore.put("C10 - Needs assessment", 0);
+		competencyToScore.put("C11 - Market analysis and market engagement", 0);
+		competencyToScore.put("C12 - Procurement strategy", 0);
+		competencyToScore.put("C13 - Technical specifications", 0);
+		competencyToScore.put("C14 - Tender documentation", 0);
+		competencyToScore.put("C15 - Tender evaluation", 0);
+		competencyToScore.put("C16 - Contract management", 0);
+		competencyToScore.put("C17 - Certification and payment", 0);
+		competencyToScore.put("C18 - Reporting and evaluation", 0);
+		competencyToScore.put("C19 - Conflict resolution / mediation", 0);
+		competencyToScore.put("C20 - Adaptability and modernisation", 0);
+		competencyToScore.put("C21 - Analytical and critical thinking", 0);
+		competencyToScore.put("C22 - Communication", 0);
+		competencyToScore.put("C23 - Ethics and compliance", 0);
+		competencyToScore.put("C24 - Collaboration", 0);
+		competencyToScore.put("C25 - Stakeholder relationship management", 0);
+		competencyToScore.put("C26 - Team management and Leadership", 0);
+		competencyToScore.put("C27 - Organisational awareness", 0);
+		competencyToScore.put("C28 - Project management", 0);
+		competencyToScore.put("C29 - Performance orientation", 0);
+		competencyToScore.put("C30 - Risk management and internal control", 0);
+		return competencyToScore;
 	}
 
 	private Map<String, Integer> defaultDepartmentManager() {
@@ -641,13 +1053,13 @@ public class ECFService extends BasicService {
 		competencyToScore.put("C1 - Planning", 3);
 		competencyToScore.put("C2 - Lifecycle", 3);
 		competencyToScore.put("C3 - Legislation", 4);
-		competencyToScore.put("C4 - e-Procurement & other IT tools", 2);
+		competencyToScore.put("C4 - e-Procurement and other IT tools", 2);
 		competencyToScore.put("C5 - Sustainable procurement", 3);
 		competencyToScore.put("C6 - Innovation Procurement", 3);
 		competencyToScore.put("C7 - Category specific", 0);
 		competencyToScore.put("C8 - Supplier management", 2);
 		competencyToScore.put("C9 - Negotiations", 3);
-		competencyToScore.put("C10 - Negotiations", 3);
+		competencyToScore.put("C10 - Needs assessment", 3);
 		competencyToScore.put("C11 - Market analysis and market engagement", 0);
 		competencyToScore.put("C12 - Procurement strategy", 3);
 		competencyToScore.put("C13 - Technical specifications", 0);
@@ -676,13 +1088,13 @@ public class ECFService extends BasicService {
 		competencyToScore.put("C1 - Planning", 2);
 		competencyToScore.put("C2 - Lifecycle", 2);
 		competencyToScore.put("C3 - Legislation", 2);
-		competencyToScore.put("C4 - e-Procurement & other IT tools", 1);
+		competencyToScore.put("C4 - e-Procurement and other IT tools", 1);
 		competencyToScore.put("C5 - Sustainable procurement", 2);
 		competencyToScore.put("C6 - Innovation Procurement", 2);
 		competencyToScore.put("C7 - Category specific", 0);
 		competencyToScore.put("C8 - Supplier management", 2);
 		competencyToScore.put("C9 - Negotiations", 2);
-		competencyToScore.put("C10 - Negotiations", 0);
+		competencyToScore.put("C10 - Needs assessment", 0);
 		competencyToScore.put("C11 - Market analysis and market engagement", 0);
 		competencyToScore.put("C12 - Procurement strategy", 0);
 		competencyToScore.put("C13 - Technical specifications", 0);
@@ -711,13 +1123,13 @@ public class ECFService extends BasicService {
 		competencyToScore.put("C1 - Planning", 2);
 		competencyToScore.put("C2 - Lifecycle", 3);
 		competencyToScore.put("C3 - Legislation", 1);
-		competencyToScore.put("C4 - e-Procurement & other IT tools", 1);
+		competencyToScore.put("C4 - e-Procurement and other IT tools", 1);
 		competencyToScore.put("C5 - Sustainable procurement", 3);
 		competencyToScore.put("C6 - Innovation Procurement", 3);
 		competencyToScore.put("C7 - Category specific", 3);
 		competencyToScore.put("C8 - Supplier management", 2);
 		competencyToScore.put("C9 - Negotiations", 0);
-		competencyToScore.put("C10 - Negotiations", 2);
+		competencyToScore.put("C10 - Needs assessment", 2);
 		competencyToScore.put("C11 - Market analysis and market engagement", 2);
 		competencyToScore.put("C12 - Procurement strategy", 2);
 		competencyToScore.put("C13 - Technical specifications", 3);
@@ -746,13 +1158,13 @@ public class ECFService extends BasicService {
 		competencyToScore.put("C1 - Planning", 1);
 		competencyToScore.put("C2 - Lifecycle", 3);
 		competencyToScore.put("C3 - Legislation", 1);
-		competencyToScore.put("C4 - e-Procurement & other IT tools", 2);
+		competencyToScore.put("C4 - e-Procurement and other IT tools", 2);
 		competencyToScore.put("C5 - Sustainable procurement", 1);
 		competencyToScore.put("C6 - Innovation Procurement", 1);
 		competencyToScore.put("C7 - Category specific", 1);
 		competencyToScore.put("C8 - Supplier management", 1);
 		competencyToScore.put("C9 - Negotiations", 2);
-		competencyToScore.put("C10 - Negotiations", 2);
+		competencyToScore.put("C10 - Needs assessment", 2);
 		competencyToScore.put("C11 - Market analysis and market engagement", 2);
 		competencyToScore.put("C12 - Procurement strategy", 2);
 		competencyToScore.put("C13 - Technical specifications", 2);
@@ -781,13 +1193,13 @@ public class ECFService extends BasicService {
 		competencyToScore.put("C1 - Planning", 1);
 		competencyToScore.put("C2 - Lifecycle", 2);
 		competencyToScore.put("C3 - Legislation", 2);
-		competencyToScore.put("C4 - e-Procurement & other IT tools", 2);
+		competencyToScore.put("C4 - e-Procurement and other IT tools", 2);
 		competencyToScore.put("C5 - Sustainable procurement", 1);
 		competencyToScore.put("C6 - Innovation Procurement", 1);
 		competencyToScore.put("C7 - Category specific", 1);
 		competencyToScore.put("C8 - Supplier management", 1);
 		competencyToScore.put("C9 - Negotiations", 2);
-		competencyToScore.put("C10 - Negotiations", 1);
+		competencyToScore.put("C10 - Needs assessment", 1);
 		competencyToScore.put("C11 - Market analysis and market engagement", 2);
 		competencyToScore.put("C12 - Procurement strategy", 2);
 		competencyToScore.put("C13 - Technical specifications", 2);
@@ -816,13 +1228,13 @@ public class ECFService extends BasicService {
 		competencyToScore.put("C1 - Planning", 0);
 		competencyToScore.put("C2 - Lifecycle", 1);
 		competencyToScore.put("C3 - Legislation", 0);
-		competencyToScore.put("C4 - e-Procurement & other IT tools", 1);
+		competencyToScore.put("C4 - e-Procurement and other IT tools", 1);
 		competencyToScore.put("C5 - Sustainable procurement", 0);
 		competencyToScore.put("C6 - Innovation Procurement", 0);
 		competencyToScore.put("C7 - Category specific", 0);
 		competencyToScore.put("C8 - Supplier management", 1);
 		competencyToScore.put("C9 - Negotiations", 0);
-		competencyToScore.put("C10 - Negotiations", 1);
+		competencyToScore.put("C10 - Needs assessment", 1);
 		competencyToScore.put("C11 - Market analysis and market engagement", 1);
 		competencyToScore.put("C12 - Procurement strategy", 0);
 		competencyToScore.put("C13 - Technical specifications", 1);
@@ -1109,15 +1521,34 @@ public class ECFService extends BasicService {
 		return (float) Math.round((totalScore.floatValue() / numberOfScores) * 10) / 10;
 	}
 
-	private List<AnswerSet> getAnswers(Survey survey, ECFProfile profile, SqlPagination sqlPagination)
+	private List<AnswerSet> getAnswers(Survey survey, ECFProfile profile, String orderBy, SqlPagination sqlPagination)
 			throws Exception {
 		ResultFilter resultFilter = new ResultFilter();
-		resultFilter.setEcfProfileUid(profile.getProfileUid());
+
+		if (profile != null) {
+			resultFilter.setEcfProfileUid(profile.getProfileUid());
+		}
+
+		if (orderBy != null) {
+			ResultFilterOrderBy resultFilterOrderBy = ResultFilter.ResultFilterOrderBy.parse(orderBy);
+			resultFilter.setSortKey(resultFilterOrderBy.toResultFilterSortKey().value());
+			resultFilter.setSortOrder(resultFilterOrderBy.toAscOrDesc());
+		}
+
 		return answerService.getAnswers(survey, resultFilter, sqlPagination, false, false, true);
 	}
 
+	private List<AnswerSet> getAnswers(Survey survey, ECFProfile profile, SqlPagination sqlPagination)
+			throws Exception {
+		return this.getAnswers(survey, profile, null, sqlPagination);
+	}
+
+	private List<AnswerSet> getAnswers(Survey survey, String orderBy, SqlPagination sqlPagination) throws Exception {
+		return this.getAnswers(survey, null, orderBy, sqlPagination);
+	}
+
 	private List<AnswerSet> getAnswers(Survey survey, SqlPagination sqlPagination) throws Exception {
-		return answerService.getAnswers(survey, null, sqlPagination, false, false, true);
+		return this.getAnswers(survey, null, null, sqlPagination);
 	}
 
 	private Integer getCount(Survey survey, ECFProfile profile) throws Exception {
@@ -1129,6 +1560,43 @@ public class ECFService extends BasicService {
 	private Integer getCount(Survey survey) throws Exception {
 		ResultFilter resultFilter = new ResultFilter();
 		return this.answerService.getNumberOfAnswerSets(survey, resultFilter);
+	}
+
+	class ParticipantScore {
+		private Integer score;
+		private String name;
+
+		public ParticipantScore() {
+			super();
+		}
+
+		public ParticipantScore(String name) {
+			super();
+			this.name = name;
+		}
+
+		public ParticipantScore(Integer score, String name) {
+			super();
+			this.score = score;
+			this.name = name;
+		}
+
+		public Integer getScore() {
+			return score;
+		}
+
+		public void setScore(Integer score) {
+			this.score = score;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
+
 	}
 
 }

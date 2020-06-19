@@ -866,15 +866,15 @@
 					
 			<div style="vertical-align: middle; margin-left: auto; margin-right: auto; margin-top: 10px;">		
 				<div style="float: left; margin-top: 0px; margin-bottom: 0px;">		
-					<a id="results-table-link" class="btn btn-xs btn-primary" onclick="switchTo('content');"><img src="${contextpath}/resources/images/icons/24/table.png" /></a>
-					<a id="results-statistics-link" class="btn btn-default btn-xs" onclick="switchTo('statistics');"><img src="${contextpath}/resources/images/icons/24/percentage.png" /></a>
+					<a data-toggle="tooltip" data-placement="bottom" title="<spring:message code="label.Results" />" id="results-table-link" class="btn btn-xs btn-primary" onclick="switchTo('content');"><img src="${contextpath}/resources/images/icons/24/table.png" /></a>
+					<a data-toggle="tooltip" data-placement="bottom" title="<spring:message code="label.Statistics" />" id="results-statistics-link" class="btn btn-default btn-xs" onclick="switchTo('statistics');"><img src="${contextpath}/resources/images/icons/24/percentage.png" /></a>
 					<c:if test="${form.survey.isQuiz}">
-						<a id="results-statistics-quiz-link" class="btn btn-default btn-xs" onclick="switchTo('statistics-quiz');"><span class="glyphicon glyphicon-education" style="font-size: 19px; color: #333"></span></a>
+						<a data-toggle="tooltip" data-placement="bottom" title="<spring:message code="label.QuizResultPage" />" id="results-statistics-quiz-link" class="btn btn-default btn-xs" onclick="switchTo('statistics-quiz');"><span class="glyphicon glyphicon-education" style="font-size: 19px; color: #333"></span></a>
 					</c:if>
 					<c:if test="${form.survey.isECF}">
-						<a id="results-ecf" class="btn btn-default btn-xs" onclick="switchTo('ecf');"><span class="glyphicon glyphicon-user" style="font-size: 19px; color: #333"></span></a>
-						<a id="results-ecf2" class="btn btn-default btn-xs" onclick="switchTo('ecf2');"><span class="glyphicon glyphicon-eye-open" style="font-size: 19px; color: #333"></span></a>
-						<a id="results-ecf3" class="btn btn-default btn-xs" onclick="switchTo('ecf3');"><span class="glyphicon glyphicon-globe" style="font-size: 19px; color: #333"></span></a>
+						<a data-toggle="tooltip" data-placement="bottom" title="<spring:message code="label.ECF.Results" />" id="results-ecf" class="btn btn-default btn-xs" onclick="switchTo('ecf');"><span class="glyphicon glyphicon-user" style="font-size: 19px; color: #333"></span></a>
+						<a data-toggle="tooltip" data-placement="bottom" title="<spring:message code="label.ECF.Results2" />" id="results-ecf2" class="btn btn-default btn-xs" onclick="switchTo('ecf2');"><span class="glyphicon glyphicon-eye-open" style="font-size: 19px; color: #333"></span></a>
+						<a data-toggle="tooltip" data-placement="bottom" title="<spring:message code="label.ECF.Results3" />" id="results-ecf3" class="btn btn-default btn-xs" onclick="switchTo('ecf3');"><span class="glyphicon glyphicon-globe" style="font-size: 19px; color: #333"></span></a>
 					</c:if>
 				</div>
 				

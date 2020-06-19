@@ -22,10 +22,13 @@ public class SurveyCreator {
 	private static final Logger logger = Logger.getLogger(SurveyCreator.class);
 
 	public static Survey createNewECFSurvey(User owner, Language language,
-	 Set<ECFCompetency> competencies, Set<ECFProfile> profiles)  {
+	 Set<ECFCompetency> competencies, Set<ECFProfile> profiles,
+	 Map<Integer, Map<Integer, String>> questionNumberToAnswerToText,
+	 Map<Integer, Map<Integer, String>> competencyNumberToQuestionNumberToText)  {
 		logger.info("Creating the ECF survey");
 		logger.info("There are " + competencies.size() + " competencies");
 		logger.info("There are " + profiles.size() + " profiles");
+		logger.info(competencyNumberToQuestionNumberToText.toString());
 		Survey survey = new Survey();
 		survey.setContact(owner.getEmail());
 		survey.setIsDraft(true);
@@ -76,12 +79,16 @@ public class SurveyCreator {
 		int numberOfQuestionsForOneCompetency = 2;
 		for (ECFCompetency ecfCompetency : competencies) {
 			for (int noqfoc=0; noqfoc< numberOfQuestionsForOneCompetency; noqfoc++) {
+				int noqfoc1 = noqfoc + 1;
+				logger.info("noqfoc1 " + noqfoc1);
+				logger.info("ecfCompetency.getOrderNumber() " + ecfCompetency.getOrderNumber());
+				logger.info(competencyNumberToQuestionNumberToText.get(ecfCompetency.getOrderNumber()).get(noqfoc1));
+				
 				SingleChoiceQuestion singleChoiceQuestion = new SingleChoiceQuestion(survey,
-				"Competency " + ecfCompetency.getName() + " question " + noqfoc,
-				"q" +noqfoc + ".competency." + ecfCompetency.getCompetenceUid(),
+						ecfCompetency.getName() + ": " + competencyNumberToQuestionNumberToText.get(ecfCompetency.getOrderNumber()).get(noqfoc1),
+				"q" + noqfoc + ".competency." + ecfCompetency.getCompetenceUid(),
 				 UUID.randomUUID().toString());
 				singleChoiceQuestion.setPosition(ecfCompetency.getOrderNumber() + position);
-				singleChoiceQuestion.setHelp("Please choose from 0 to 4");
 				singleChoiceQuestion.setOptional(false);
 				singleChoiceQuestion.setUseRadioButtons(true);
 				singleChoiceQuestion.setEcfCompetency(ecfCompetency);
@@ -90,7 +97,7 @@ public class SurveyCreator {
 					possibleAnswer.setUniqueId(UUID.randomUUID().toString());
 					possibleAnswer.setPosition(i);
 					possibleAnswer.setShortname("answer." + i);
-					possibleAnswer.setTitle("Answer " + Integer.toString(i));
+					possibleAnswer.setTitle(questionNumberToAnswerToText.get(noqfoc).get(i));
 					possibleAnswer.setEcfScore(i);
 					singleChoiceQuestion.getPossibleAnswers().add(possibleAnswer);
 				}

@@ -105,7 +105,9 @@ public class ECFProfile implements Serializable {
 	}
 
 	public void addECFExpectedScore(ECFExpectedScore expectedScore) {
-		this.expectedScores.add(expectedScore);
+		List<ECFExpectedScore> newScores = new ArrayList<>();
+		newScores.addAll(this.expectedScores);
+		this.expectedScores = newScores;
 	}
 	
 	public ECFProfile replaceScore(ECFCompetency previousScoreId, ECFExpectedScore copiedScore) {

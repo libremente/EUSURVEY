@@ -27,6 +27,42 @@
 	<div class="row">
 		<div id="resultsContainerMax"
 			class="col-xs-12 col-sm-12 col-md-3 col-lg-3">
+			<div class="form-group">
+				<label for="display-contributions"><spring:message
+						code="label.ECF.DisplayContributions" /></label>
+				<table class="table table-styled table-striped table-bordered"
+					id="ecfSelectContributionsTable3">
+					<thead>
+						<tr class="headerrow">
+							<th><spring:message code="label.ECF.Profile" /></th>
+							<th><spring:message code="label.ECF.NumberOfContributions" />
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<c:forEach var="profileResult"
+							items="${ecfSummaryResult.profileResults}" varStatus="loop">
+
+							<c:choose>
+								<c:when test="${profileResult.isSelected}">
+									<tr class="selectedrow"
+										data-profile-uid="${profileResult.profileUid}">
+										<th>${profileResult.profileName}</th>
+										<th>${profileResult.numberOfContributions}</th>
+									</tr>
+								</c:when>
+								<c:otherwise>
+									<tr class="bodyrow"
+										data-profile-uid="${profileResult.profileUid}">
+										<th>${profileResult.profileName}</th>
+										<th>${profileResult.numberOfContributions}</th>
+									</tr>
+								</c:otherwise>
+							</c:choose>
+						</c:forEach>
+					</tbody>
+				</table>
+			</div>
 			<table class="table table-styled table-striped table-bordered"
 				id="ecfResultTable3">
 				<thead>
@@ -55,21 +91,19 @@
 			</table>
 		</div>
 		<div id="chartsContainer"
-			class="col-xs-12 col-sm-12 col-md-9 col-lg-9 h-50">
-			<div class="inlineChart col-xs-12 col-sm-12 col-md-5 col-lg-5">
+			class="col-xs-12 col-sm-12 col-md-9 col-lg-9 h-70">
+			<div class="inlineChart col-xs-12 col-sm-12 col-md-9 col-lg-9">
 				<canvas id="ecfMaxChart"></canvas>
 			</div>
 		</div>
 		<div id="chartsContainer2"
-			class="col-xs-12 col-sm-12 col-md-9 col-lg-9 h-50">
-			<div class="inlineChart col-xs-12 col-sm-12 col-md-5 col-lg-5">
+			class="col-xs-12 col-sm-12 col-md-9 col-lg-9 h-70">
+			<div class="inlineChart col-xs-12 col-sm-12 col-md-9 col-lg-9">
 				<canvas id="ecfAverageChart"></canvas>
 			</div>
 		</div>
 	</div>
-	<div class="row">
-		
-	</div>
+	<div class="row"></div>
 </div>
 </div>
 
