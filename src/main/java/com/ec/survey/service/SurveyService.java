@@ -4008,6 +4008,17 @@ public class SurveyService extends BasicService {
 		}
 	}
 	
+	@Transactional(readOnly = true)
+	public List<Survey> getAllECFSurveys() {
+		Session session = sessionFactory.getCurrentSession();
+		String sql = "FROM Survey s WHERE s.isECF = true";
+		Query query = session.createQuery(sql);
+
+		@SuppressWarnings("unchecked")
+		List<Survey> result = query.list();
+		return result;
+	}
+	
 	public List<Survey> getAllSurveysForUser(User user) {
 		Session session = sessionFactory.getCurrentSession();
 		

@@ -86,7 +86,7 @@
 						<option value="${profile.profileUid}" selected="selected">
 							${profile.name}</option>
 					</c:forEach>
-					<option value="" selected="selected">All Job Profile</option>
+					<option value="" selected="selected">No target profile</option>
 				</select>
 			</div>
 			<div class="form-group">
@@ -94,17 +94,17 @@
 						code="label.ECF.SortBy" /></label> <select
 					onchange="displayCurrentPageResults()" class="form-control"
 					name="select-orderBy" id="select-orderBy">
-					<option value="gap.asc"><spring:message
+					<option value="ecfGapAsc"><spring:message
 							code="label.ECF.SortByGapAsc" /></option>
-					<option value="gap.desc"><spring:message
+					<option value="ecfGapDesc"><spring:message
 							code="label.ECF.SortByGapDesc" /></option>
-					<option value="score.asc"><spring:message
+					<option value="ecfScoreAsc"><spring:message
 							code="label.ECF.SortByScoreAsc" /></option>
-					<option value="score.desc"><spring:message
+					<option value="ecfScoreDesc"><spring:message
 							code="label.ECF.SortByScoreDesc" /></option>
-					<option value="name.desc"><spring:message
+					<option value="nameDesc"><spring:message
 							code="label.ECF.SortByNameDesc" /></option>
-					<option value="name.asc" selected="selected"><spring:message
+					<option value="nameAsc" selected="selected"><spring:message
 							code="label.ECF.SortByNameAsc" /></option>
 				</select>
 			</div>
@@ -137,10 +137,10 @@
 						<th><spring:message code="label.ECF.Competence" /></th>
 						<th><spring:message code="label.ECF.Target" /></th>
 						<c:if test="${!empty ecfGlobalResult.individualResults}">
-							<c:forEach var="competencyScore"
-								items="${ecfGlobalResult.individualResults[0].competencyScores}"
+							<c:forEach var="participantName"
+								items="${ecfGlobalResult.individualResults[0].participantsNames}"
 								varStatus="loop">
-								<th class="individual">Individual ${loop.index + 1}</th>
+								<th class="individual">${participantName}</th>
 							</c:forEach>
 						</c:if>
 					</tr>

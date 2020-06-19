@@ -20,6 +20,9 @@ public class ECFProfileCompetencyResult implements Comparable {
 	@JsonProperty("competencyMaxScore")
 	private Integer competencyMaxScore;
 
+	@JsonProperty("competencyScoreGap")
+	private Integer competencyScoreGap;
+
 	private Integer order;
 
 	public String getCompetencyName() {
@@ -54,6 +57,14 @@ public class ECFProfileCompetencyResult implements Comparable {
 		this.competencyMaxScore = competencyMaxScore;
 	}
 
+	public Integer getCompetencyScoreGap() {
+		return this.competencyScoreGap;
+	}
+
+	public void setCompetencyScoreGap(Integer competencyScoreGap) {
+		this.competencyScoreGap = competencyScoreGap;
+	}
+
 	public Integer getOrder() {
 		return order;
 	}
@@ -66,7 +77,7 @@ public class ECFProfileCompetencyResult implements Comparable {
 	public String toString() {
 		return "ECFProfileCompetencyResult [competencyName=" + competencyName + ", competencyTargetScore="
 				+ competencyTargetScore + ", competencyAverageScore=" + competencyAverageScore + ", competencyMaxScore="
-				+ competencyMaxScore + ", order=" + order + "]";
+				+ competencyMaxScore + ", competencyScoreGap=" + competencyScoreGap + ", order=" + order + "]";
 	}
 
 	@Override

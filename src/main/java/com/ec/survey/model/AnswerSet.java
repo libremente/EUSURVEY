@@ -43,6 +43,8 @@ public class AnswerSet implements java.io.Serializable {
 	private Boolean wcagMode;
 	private Integer score;
 	private String ecfProfileUid;
+	private Integer ecfTotalScore;
+	private Integer ecfTotalGap;
 	
 	@Id
 	@Column(name = "ANSWER_SET_ID")
@@ -304,6 +306,8 @@ public class AnswerSet implements java.io.Serializable {
 		copy.updateDate = updateDate;
 		copy.score = score;
 		copy.ecfProfileUid = ecfProfileUid;
+		copy.ecfTotalScore = ecfTotalScore;
+		copy.ecfTotalGap = ecfTotalGap;
 
 		for (Answer answer : answers) {
 			Answer copyanswer = answer.copy(copy, files);
@@ -348,6 +352,22 @@ public class AnswerSet implements java.io.Serializable {
 	}
 	public void setEcfProfileUid(String ecfProfileUid) {
 		this.ecfProfileUid = ecfProfileUid;
+	}
+	
+	@Column(name = "ECF_TOTAL_SCORE")
+	public Integer getEcfTotalScore() {
+		return ecfTotalScore;
+	}
+	public void setEcfTotalScore(Integer ecfTotalScore) {
+		this.ecfTotalScore = ecfTotalScore;
+	}
+	
+	@Column(name = "ECF_TOTAL_GAP")
+	public Integer getEcfTotalGap() {
+		return ecfTotalGap;
+	}
+	public void setEcfTotalGap(Integer ecfTotalGap) {
+		this.ecfTotalGap = ecfTotalGap;
 	}
 	
 	@Transient

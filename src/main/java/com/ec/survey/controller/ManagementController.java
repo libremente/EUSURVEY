@@ -3270,7 +3270,7 @@ public class ManagementController extends BasicController {
 		String profileFilterOrNull = request.getParameter("profileFilter");
 		logger.info("profileComparison " + profileComparisonOrNull);
 		logger.info("profileFilter " + profileFilterOrNull);
-		String groupByOrNull = request.getParameter("groupBy");
+		String orderByOrNull = request.getParameter("orderBy");
 
 		if (pageNumberOrNull == null || pageSizeOrNull == null) {
 			throw new BadRequestException();
@@ -3323,7 +3323,22 @@ public class ManagementController extends BasicController {
 				}
 			}
 			
-			return this.ecfService.getECFGlobalResult(survey, sqlPagination, ecfProfileComparisonOrNull, ecfProfileFilterOrNull);
+			String ecfOrderByOrNull = null;
+			if (orderByOrNull != null && !orderByOrNull.isEmpty()) {
+				switch(ResultFilter.ResultFilterOrderBy.parse(orderByOrNull)) {
+				case ECFSCORE_ASC:
+				case ECFSCORE_DESC:
+				case ECFGAP_ASC:
+				case ECFGAP_DESC:
+				case NAME_ASC:
+				case NAME_DESC:
+					ecfOrderByOrNull = orderByOrNull;
+					break;
+				default: throw new BadRequestException();
+				}
+			}
+			
+			return this.ecfService.getECFGlobalResult(survey, sqlPagination, ecfProfileComparisonOrNull, ecfProfileFilterOrNull, ecfOrderByOrNull);
 
 		} catch (NotFoundException e) {
 			throw e;

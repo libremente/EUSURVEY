@@ -68,7 +68,9 @@ public class SchemaService extends BasicService {
 			Set<ECFProfile> ecfProfiles = profileToCompetencyToScore.keySet();
 			
 			Survey ecfSurvey = SurveyCreator.createNewECFSurvey(admin, objLang,
-			ecfCompetencies, ecfProfiles);
+			ecfCompetencies, ecfProfiles,
+			ecfService.defaultQuestionNumberToAnswerToText(),
+			ecfService.defaultCompetencyNumberToQuestionNumberToText());
 			surveyService.add(ecfSurvey, -1);
 			surveyService.publish(ecfSurvey, -1, -1, false, -1, false, false);
 
