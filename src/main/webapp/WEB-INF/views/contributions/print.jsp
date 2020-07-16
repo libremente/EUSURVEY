@@ -639,7 +639,9 @@
 		</div>						
 	</div>
 	
-	<%@ include file="../ecfGraph.jsp" %>  
+	<div id="canvasContainerLeft"> 
+		<%@ include file="../ecfGraph.jsp" %>
+	</div>
 	
 </body>
 </html>

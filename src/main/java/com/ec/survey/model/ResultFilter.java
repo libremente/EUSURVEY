@@ -11,6 +11,9 @@ import org.springframework.format.annotation.DateTimeFormat;
 import javax.persistence.*;
 import java.util.*;
 
+/**
+ * Defines the results we want to extract from the database. Hence, gives options to filter but also to order by.
+ */
 @Entity
 @Table(name = "RESULTFILTER")
 @Cacheable
@@ -210,7 +213,10 @@ public class ResultFilter implements java.io.Serializable {
 	private Boolean onlyReallyUpdated = false;
 	private Boolean noTestAnswers = false;
 	private Boolean defaultQuestions = true;
-	private String ecfProfileUid;
+	
+	// Only ECF answers with the following ecf Profile
+	private String answeredECFProfileUID;
+	private String compareToECFProfileUID;
 	
 	public void clearResultFilter() {
 		invitation = null;
@@ -228,7 +234,7 @@ public class ResultFilter implements java.io.Serializable {
 		createdOrUpdated = false;
 		onlyReallyUpdated = false;
 		noTestAnswers = false;
-		ecfProfileUid = null;
+		answeredECFProfileUID = null;
 	}	
 
 	public void clearSelectedQuestions() {
@@ -500,7 +506,7 @@ public class ResultFilter implements java.io.Serializable {
 		result.append(this.updatedTo);
 		result.append(this.createdOrUpdated);
 		result.append(this.onlyReallyUpdated);
-		result.append(this.ecfProfileUid == null ? "" : this.ecfProfileUid);
+		result.append(this.answeredECFProfileUID == null ? "" : this.answeredECFProfileUID);
 	
 		result.append(this.languages == null ? "" : StringUtils.join(this.languages, ""));
 		result.append(StringUtils.join(this.filterValues.keySet(), ""));
@@ -543,7 +549,7 @@ public class ResultFilter implements java.io.Serializable {
 		if (updatedTo != null) return false;
 		if (languages != null && languages.size() > 0) return false;
 		if (filterValues != null && filterValues.size() > 0) return false;
-		if (ecfProfileUid != null && !ecfProfileUid.isEmpty()) return false;
+		if (answeredECFProfileUID != null && !answeredECFProfileUID.isEmpty()) return false;
 		
 		return true;
 	}
@@ -597,7 +603,7 @@ public class ResultFilter implements java.io.Serializable {
 		copy.surveyEndDateTo = surveyEndDateTo;
 		
 		copy.defaultQuestions = defaultQuestions;
-		copy.ecfProfileUid = ecfProfileUid;
+		copy.answeredECFProfileUID = answeredECFProfileUID;
 
 		return copy;
 	}
@@ -673,13 +679,20 @@ public class ResultFilter implements java.io.Serializable {
 		this.defaultQuestions = defaultQuestions;
 	}
 
-	@Column(name = "RESFILTER_ECF_PROFILE_UID")
-	public String getEcfProfileUid() {
-		return ecfProfileUid;
+	@Column(name = "RESFILTER_ANS_ECF_PROFILE_UID")
+	public String getAnsweredECFProfileUID() {
+		return answeredECFProfileUID;
+	}
+	public void setAnsweredECFProfileUID(String ecfProfileUid) {
+		this.answeredECFProfileUID = ecfProfileUid;
 	}
 
-	public void setEcfProfileUid(String ecfProfileUid) {
-		this.ecfProfileUid = ecfProfileUid;
+	@Column(name = "RESFILTER_COMP_ECF_PROFILE_UID")
+	public String getCompareToECFProfileUID() {
+		return compareToECFProfileUID;
+	}
+	public void setCompareToECFProfileUID(String compareToECFProfileUID) {
+		this.compareToECFProfileUID = compareToECFProfileUID;
 	}
 
 }

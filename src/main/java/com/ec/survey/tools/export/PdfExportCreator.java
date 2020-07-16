@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 public class PdfExportCreator extends ExportCreator {
 	
 	@Override
-	void ExportContent(boolean sync) throws Exception {
+	void exportContent(boolean sync) throws Exception {
 		File file = pdfService.createAllIndividualResultsPDF(form.getSurvey(), export.getResultFilter());
 		FileInputStream fis = new FileInputStream(file);
 		IOUtils.copy(fis, outputStream);
@@ -20,7 +20,7 @@ public class PdfExportCreator extends ExportCreator {
 	}
 	
 	@Override
-	void ExportStatistics() throws Exception {
+	void exportStatistics() throws Exception {
 		File file = pdfService.createStatisticsPDF(form.getSurvey(), export.getId().toString());
 		FileInputStream fis = new FileInputStream(file);
 		IOUtils.copy(fis, outputStream);
@@ -29,7 +29,7 @@ public class PdfExportCreator extends ExportCreator {
 	}
 	
 	@Override
-	void ExportStatisticsQuiz() throws Exception {
+	void exportStatisticsQuiz() throws Exception {
 		File file = pdfService.createStatisticsQuizPDF(form.getSurvey(), export.getId().toString());
 		FileInputStream fis = new FileInputStream(file);
 		IOUtils.copy(fis, outputStream);
@@ -38,12 +38,30 @@ public class PdfExportCreator extends ExportCreator {
 	}
 
 	@Override
-	void ExportAddressBook() throws Exception {}
+	void exportAddressBook() throws Exception {}
 
 	@Override
-	void ExportActivities() throws Exception {}
+	void exportActivities() throws Exception {}
 	
 	@Override
-	void ExportTokens() throws Exception {}	
+	void exportTokens() throws Exception {}
+
+	@Override
+	void exportECFGlobalResults() throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	void exportECFProfileResults() throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	void exportECFOrganizationalResults() throws Exception {
+		// TODO Auto-generated method stub
+		
+	}	
 
 }

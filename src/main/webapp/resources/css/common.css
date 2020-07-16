@@ -1995,6 +1995,13 @@ input[type="radio"][disabled], input[type="checkbox"][disabled], input[type="rad
 	margin: auto;
 }
 
+#canvasContainerLeft {
+	padding: 1em;
+	display: block;
+	max-width: 800px;
+}
+
+
 #ecfRespondentChart {
 	margin: 1em;
 }

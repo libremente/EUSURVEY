@@ -37,8 +37,10 @@
 					</c:otherwise>
 				</c:choose>
 				
-				<%@ include file="../runner/runnercontentinnerpdf.jsp" %>	
-				<%@ include file="../ecfGraph.jsp" %>
+				<%@ include file="../runner/runnercontentinnerpdf.jsp" %>
+				<div id="canvasContainerLeft"> 	
+					<%@ include file="../ecfGraph.jsp" %>
+				</div>
 			</form:form>
 		
 		</div>

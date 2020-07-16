@@ -28,7 +28,9 @@
 	
 
 	<c:if test="${isECF}">
-		<%@ include file="ecfGraph.jsp" %>
+		<div id="canvasContainer"> 
+			<%@ include file="ecfGraph.jsp" %>
+		</div>
 	</c:if>
 
 	<c:if test="${opcredirection != null}">

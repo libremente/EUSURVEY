@@ -20,17 +20,16 @@ import java.util.List;
 public class CsvExportCreator extends ExportCreator {
 
 	@Override
-	void ExportContent(boolean sync) throws Exception {}
+	void exportContent(boolean sync) throws Exception {}
 	
 	@Override
-	void ExportStatistics() throws Exception {}
+	void exportStatistics() throws Exception {}
 	
 	@Override
-	void ExportStatisticsQuiz() throws Exception {}
+	void exportStatisticsQuiz() throws Exception {}
 
 	@Override
-	void ExportAddressBook() throws Exception {
-		
+	void exportAddressBook() throws Exception {
 		User user = administrationService.getUser(userId);
 				
 		int ownerId;
@@ -109,7 +108,7 @@ public class CsvExportCreator extends ExportCreator {
 	}
 
 	@Override
-	void ExportActivities() throws Exception {
+	void exportActivities() throws Exception {
 		List<Activity> activities = activityService.get(export.getActivityFilter(), 1, Integer.MAX_VALUE);	
 	
 		BufferedWriter out = null;
@@ -341,6 +340,21 @@ public class CsvExportCreator extends ExportCreator {
 	}
 
 	@Override
-	void ExportTokens() throws Exception {}	
+	void exportTokens() throws Exception {}
+
+	@Override
+	void exportECFGlobalResults() throws Exception {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	void exportECFProfileResults() throws Exception {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	void exportECFOrganizationalResults() throws Exception {
+		// TODO Auto-generated method stub
+	}	
 
 }

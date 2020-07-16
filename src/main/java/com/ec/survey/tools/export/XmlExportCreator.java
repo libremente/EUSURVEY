@@ -49,7 +49,7 @@ public class XmlExportCreator extends ExportCreator {
 
 	@Override
 	@Transactional
-	public void ExportContent(boolean sync) throws Exception {
+	public void exportContent(boolean sync) throws Exception {
 		ExportContent(sync, export, false);
 	}
 		
@@ -913,13 +913,13 @@ public class XmlExportCreator extends ExportCreator {
 	}
 	
 	@Override
-	void ExportStatistics() throws Exception {}
+	void exportStatistics() throws Exception {}
 	
 	@Override
-	void ExportStatisticsQuiz() throws Exception {}
+	void exportStatisticsQuiz() throws Exception {}
 
 	@Override
-	void ExportAddressBook() throws Exception {}
+	void exportAddressBook() throws Exception {}
 
 	public Date getExportedNow() {
 		return exportedNow;
@@ -943,9 +943,27 @@ public class XmlExportCreator extends ExportCreator {
 	}
 
 	@Override
-	void ExportActivities() throws Exception {}
+	void exportActivities() throws Exception {}
 	
 	@Override
-	void ExportTokens() throws Exception {}	
+	void exportTokens() throws Exception {}
+
+	@Override
+	void exportECFGlobalResults() throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	void exportECFProfileResults() throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	void exportECFOrganizationalResults() throws Exception {
+		// TODO Auto-generated method stub
+		
+	}	
 	
 }

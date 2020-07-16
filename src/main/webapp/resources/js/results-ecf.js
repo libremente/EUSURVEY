@@ -32,7 +32,7 @@
 		
 			$.ajax({
 				type:'GET',
-				url: contextpath + "/" + surveyShortname + "/management/ecfResultsJSON"
+				url: contextpath + "/" + surveyShortname + "/management/ecfGlobalResultsJSON"
 				+"?pageNumber=" + pageNumber
 				+"&pageSize=" + pageSize
 				+ profileComparisonUUIDParam

@@ -3355,86 +3355,50 @@ public class ManagementController extends BasicController {
 		return null;
 	}
 
-	@RequestMapping(value = "/ecfResultsJSON", method = { RequestMethod.GET, RequestMethod.HEAD })
-	public @ResponseBody ECFGlobalResult ecfResultsJSON(@PathVariable String shortname, HttpServletRequest request) 
+	@RequestMapping(value = "/ecfGlobalResultsJSON", method = { RequestMethod.GET, RequestMethod.HEAD })
+	public @ResponseBody ECFGlobalResult ecfGlobalResultsJSON(@PathVariable String shortname, HttpServletRequest request) 
 			throws NotFoundException, BadRequestException, InternalServerErrorException, NotAgreedToTosException, WeakAuthenticationException, NotAgreedToPsException, ForbiddenException {
 		// PARAMS
 		String pageNumberOrNull = request.getParameter("pageNumber");
 		String pageSizeOrNull = request.getParameter("pageSize");
 		String profileComparisonOrNull = request.getParameter("profileComparison");
 		String profileFilterOrNull = request.getParameter("profileFilter");
-		logger.info("profileComparison " + profileComparisonOrNull);
-		logger.info("profileFilter " + profileFilterOrNull);
 		String orderByOrNull = request.getParameter("orderBy");
-
+		
 		if (pageNumberOrNull == null || pageSizeOrNull == null) {
 			throw new BadRequestException();
 		}
-
+		
 		Integer pageNumber = Integer.valueOf(pageNumberOrNull);
 		Integer pageSize = Integer.valueOf(pageSizeOrNull);
+		
 
 		SqlPagination sqlPagination = new SqlPagination(pageNumber, pageSize);
-
-		// AUTHORISATION
-		// TODO: bypass if publication of these results?
 		
 		ResultFilter filter = sessionService.getLastResultFilter(request);
 		Survey survey = (filter != null) 
 				? surveyService.getSurvey(filter.getSurveyId(), true) 
 				: surveyService.getSurvey(shortname, false, true, false, false, null, true, false);
 				
-		User user = sessionService.getCurrentUser(request);
-		try {
-			this.sessionService.upgradePrivileges(survey, user, request);
-		} catch (Exception e1) {
-			throw new InternalServerErrorException(e1);
-		}
-		if (!survey.getOwner().getId().equals(user.getId())) {
-			if (!(user.getGlobalPrivileges().get(GlobalPrivilege.FormManagement) >= 2)) {
-				if (!(user.getLocalPrivileges().get(LocalPrivilege.FormManagement) >= 1)) {
-					if (!(user.getLocalPrivileges().get(LocalPrivilege.AccessResults) >= 1)) {
-						throw new ForbiddenException();
-					}
-				}
-			}
-		}
-		
+		this.sessionService.userIsResultReadAuthorized(survey, request);
+		User user = this.sessionService.getCurrentUser(request);
+
 		// ACTUAL CODE
 		try {
-			ECFProfile ecfProfileComparisonOrNull = null;
-			if (profileComparisonOrNull != null && !profileComparisonOrNull.isEmpty()) {
-				ecfProfileComparisonOrNull = this.ecfService.getECFProfileByUUID(profileComparisonOrNull);
-				if (ecfProfileComparisonOrNull == null) {
-					throw new NotFoundException();
-				} 
-			} 
+			filter.setAnsweredECFProfileUID(profileFilterOrNull);
+			filter.setCompareToECFProfileUID(profileComparisonOrNull);
 			
-			ECFProfile ecfProfileFilterOrNull = null;
-			if (profileFilterOrNull != null && !profileFilterOrNull.isEmpty()) {
-				ecfProfileFilterOrNull = this.ecfService.getECFProfileByUUID(profileFilterOrNull);
-				if (ecfProfileFilterOrNull == null) {
-					throw new NotFoundException();
-				}
+			if (orderByOrNull != null) {
+				ResultFilter.ResultFilterOrderBy resultFilterOrderBy = ResultFilter.ResultFilterOrderBy.parse(orderByOrNull);
+				String ascOrDesc = resultFilterOrderBy.toAscOrDesc();
+				String key = resultFilterOrderBy.toResultFilterSortKey().value();
+				filter.setSortOrder(ascOrDesc);
+				filter.setSortKey(key);
 			}
 			
-			String ecfOrderByOrNull = null;
-			if (orderByOrNull != null && !orderByOrNull.isEmpty()) {
-				switch(ResultFilter.ResultFilterOrderBy.parse(orderByOrNull)) {
-				case ECFSCORE_ASC:
-				case ECFSCORE_DESC:
-				case ECFGAP_ASC:
-				case ECFGAP_DESC:
-				case NAME_ASC:
-				case NAME_DESC:
-					ecfOrderByOrNull = orderByOrNull;
-					break;
-				default: throw new BadRequestException();
-				}
-			}
 			
-			return this.ecfService.getECFGlobalResult(survey, sqlPagination, ecfProfileComparisonOrNull, ecfProfileFilterOrNull, ecfOrderByOrNull);
-
+			this.sessionService.setLastResultFilter(request, filter, user.getId(), survey.getId());
+			return this.ecfService.getECFGlobalResult(survey, sqlPagination, filter);
 		} catch (NotFoundException e) {
 			throw e;
 		} catch (Exception e) {
@@ -3449,27 +3413,11 @@ public class ManagementController extends BasicController {
 
 		// AUTHORISATION
 		// TODO: bypass if publication of these results?
-		
 		ResultFilter filter = sessionService.getLastResultFilter(request);
 		Survey survey = (filter != null) 
 				? surveyService.getSurvey(filter.getSurveyId(), true) 
 				: surveyService.getSurvey(shortname, false, true, false, false, null, true, false);
-				
-		User user = sessionService.getCurrentUser(request);
-		try {
-			this.sessionService.upgradePrivileges(survey, user, request);
-		} catch (Exception e1) {
-			throw new InternalServerErrorException(e1);
-		}
-		if (!survey.getOwner().getId().equals(user.getId())) {
-			if (!(user.getGlobalPrivileges().get(GlobalPrivilege.FormManagement) >= 2)) {
-				if (!(user.getLocalPrivileges().get(LocalPrivilege.FormManagement) >= 1)) {
-					if (!(user.getLocalPrivileges().get(LocalPrivilege.AccessResults) >= 1)) {
-						throw new ForbiddenException();
-					}
-				}
-			}
-		}
+		this.sessionService.userIsResultReadAuthorized(survey, request);
 		
 		// ACTUAL CODE
 		try {
@@ -3494,29 +3442,11 @@ public class ManagementController extends BasicController {
 	@RequestMapping(value = "/ecfOrganizationalResultsJSON", method = { RequestMethod.GET, RequestMethod.HEAD })
 	public @ResponseBody ECFOrganizationalResult ecfOrganizationalResultsJSON(@PathVariable String shortname, HttpServletRequest request) 
 			throws NotFoundException, BadRequestException, InternalServerErrorException, NotAgreedToTosException, WeakAuthenticationException, NotAgreedToPsException, ForbiddenException {
-		// AUTHORISATION
-		// TODO: bypass if publication of these results?
-		
 		ResultFilter filter = sessionService.getLastResultFilter(request);
 		Survey survey = (filter != null) 
 				? surveyService.getSurvey(filter.getSurveyId(), true) 
 				: surveyService.getSurvey(shortname, false, true, false, false, null, true, false);
-				
-		User user = sessionService.getCurrentUser(request);
-		try {
-			this.sessionService.upgradePrivileges(survey, user, request);
-		} catch (Exception e1) {
-			throw new InternalServerErrorException(e1);
-		}
-		if (!survey.getOwner().getId().equals(user.getId())) {
-			if (!(user.getGlobalPrivileges().get(GlobalPrivilege.FormManagement) >= 2)) {
-				if (!(user.getLocalPrivileges().get(LocalPrivilege.FormManagement) >= 1)) {
-					if (!(user.getLocalPrivileges().get(LocalPrivilege.AccessResults) >= 1)) {
-						throw new ForbiddenException();
-					}
-				}
-			}
-		}
+		this.sessionService.userIsResultReadAuthorized(survey, request);
 		
 		try {
 			return this.ecfService.getECFOrganizationalResult(survey);
@@ -3656,6 +3586,33 @@ public class ManagementController extends BasicController {
 		return null;
 	}
 	
+	/**
+	 * Used to prepare a web page for PDF creation of the ECF Global Results
+	 */
+	@RequestMapping(value = "/prepareECFGlobalResults/{id}/{exportId}", method = {RequestMethod.GET, RequestMethod.HEAD})
+	public ModelAndView prepareECFGlobalResults(@PathVariable String id, @PathVariable String exportId, Locale locale, HttpServletRequest request) throws Exception {
+		Export export = exportService.getExport(Integer.parseInt(exportId), false);
+		if (export == null) {
+			logger.error("export is null");
+			return null;
+		}
+		
+		if (export.getState() != ExportState.Pending) {
+			logger.error("export state is " + export.getState());
+			return null;
+		}
+		
+		if (!export.getSurvey().getId().equals(Integer.parseInt(id))) {
+			logger.error("mismatch: " + export.getSurvey().getId() + " : " + id );
+			return null;
+		}
+		
+		Survey survey = this.surveyService.getSurvey(Integer.parseInt(id), false, true);
+		ResultFilter filter = export.getResultFilter().copy();
+		ECFGlobalResult ecfGlobalResult = null;
+		return new ModelAndView("management/ecfGlobalResultsPDF", "ecfGlobalResult", ecfGlobalResult);
+	}
+	
 	@RequestMapping(value = "/preparestatistics/{id}/{exportId}", method = {RequestMethod.GET, RequestMethod.HEAD})
 	public ModelAndView preparestatistics(@PathVariable String id, @PathVariable String exportId, Locale locale, HttpServletRequest request) throws Exception {
 		
@@ -3664,19 +3621,20 @@ public class ManagementController extends BasicController {
 		if (export == null)
 		{
 			logger.error("export is null");
+			return null;
 		}
 		
 		if (export.getState() != ExportState.Pending)
 		{
 			logger.error("export state is " + export.getState());
+			return null;
 		}
 		
 		if (!export.getSurvey().getId().equals(Integer.parseInt(id)))
 		{
 			logger.error("mismatch: " + export.getSurvey().getId() + " : " + id );
+			return null;
 		}		
-		
-		if (export == null || export.getState() != ExportState.Pending || !export.getSurvey().getId().equals(Integer.parseInt(id))) return null;
 		
 		Survey s = surveyService.getSurvey(Integer.parseInt(id), false, true);
 		
