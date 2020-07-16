@@ -77,9 +77,7 @@ public class ExportService extends BasicService {
 
 	@Transactional
 	public boolean startExport(Form form, Export export, boolean immediate, MessageSource resources, Locale locale, String uid, String exportFilePath, boolean skipcheckworkerserver) {	
-		
 		try {
-			
 			User user = administrationService.getUser(export.getUserId());
 			logger.info("Starting export check settings skipcheckworkerserver " + skipcheckworkerserver +" useworkerserver " + useworkerserver +" isworkerserver " + isworkerserver);
 			
@@ -128,15 +126,13 @@ public class ExportService extends BasicService {
 			default: throw new MessageException("Export format not supported");
 			}
 			
-			if (user == null)
-			{
+			if (user == null) {
 				exportCreator.init(0, form, export, exportFilePath, resources, locale, uid, serverPrefix);
 			} else {
 				exportCreator.init(user.getId(), form, export, exportFilePath, resources, locale, uid, serverPrefix);
 			}
 			
-			switch (export.getType())
-			{
+			switch (export.getType()) {
 				case Statistics:
 					activityService.log(307, null, export.getId() != null ? export.getId().toString() : "", user != null ? user.getId() : 0, export.getSurvey() != null ? export.getSurvey().getUniqueId() : "");
 					break;
@@ -150,18 +146,12 @@ public class ExportService extends BasicService {
 				break;					
 			}
 			
-			if (immediate)
-			{
+			if (immediate) {
 				exportCreator.runSync();
 				
 				if (export.getEmail() != null)
 				{
 					markFinished(export);
-					
-					Calendar end = Calendar.getInstance();
-					end.setTime( new Date());
-					end.add(Calendar.MINUTE, 5);
-					
 					Export finishedExport = exportService.getExport(export.getId(), false);
 					if (!finishedExport.isFinished())
 					{

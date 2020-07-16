@@ -21,7 +21,9 @@ import org.springframework.beans.factory.annotation.Configurable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ec.survey.exception.BadRequestException;
 import com.ec.survey.exception.ECFException;
+import com.ec.survey.exception.NotFoundException;
 import com.ec.survey.model.Answer;
 import com.ec.survey.model.AnswerSet;
 import com.ec.survey.model.ECFCluster;
@@ -450,7 +452,8 @@ public class ECFService extends BasicService {
 	}
 
 	public ECFGlobalResult getECFGlobalResult(Survey survey, SqlPagination sqlPagination) throws Exception {
-		return this.getECFGlobalResult(survey, sqlPagination, null);
+		ECFProfile ecfProfile = null;
+		return this.getECFGlobalResult(survey, sqlPagination, ecfProfile);
 	}
 
 	public ECFGlobalResult getECFGlobalResult(Survey survey, SqlPagination sqlPagination, ECFProfile profileComparison)
@@ -461,6 +464,34 @@ public class ECFService extends BasicService {
 	public ECFGlobalResult getECFGlobalResult(Survey survey, SqlPagination sqlPagination, ECFProfile profileComparison,
 			ECFProfile profileFilter) throws Exception {
 		return this.getECFGlobalResult(survey, sqlPagination, profileComparison, null, null);
+	}
+	
+	/**
+	 * Entry point method from the controller;
+	 */
+	public ECFGlobalResult getECFGlobalResult(Survey survey, SqlPagination sqlPagination, ResultFilter resultFilter) throws Exception {
+		ECFProfile profileFilter = null;
+		ECFProfile profileComparison = null;
+		String sortOrder = resultFilter.getSortOrder();
+		String sortKey = resultFilter.getSortKey();
+		
+		if (resultFilter.getAnsweredECFProfileUID() != null) {
+			profileFilter = this.getECFProfileByUUID(resultFilter.getAnsweredECFProfileUID());
+			if (profileFilter == null) throw new NotFoundException();
+		}
+		
+		if (resultFilter.getCompareToECFProfileUID() != null) {
+			profileComparison = this.getECFProfileByUUID(resultFilter.getCompareToECFProfileUID());
+			if (profileComparison == null) throw new NotFoundException();
+		}
+		
+		if (sortOrder !=null && sortKey !=null) {
+			if (ResultFilter.ResultFilterOrderBy.parse(sortKey+sortOrder).equals(ResultFilter.ResultFilterOrderBy.UNKNOWN)) {
+				throw new BadRequestException();
+			}
+		}
+		 
+		return this.getECFGlobalResult(survey, sqlPagination, profileComparison, profileFilter, sortKey+sortOrder);
 	}
 
 	/**
@@ -1519,12 +1550,12 @@ public class ECFService extends BasicService {
 		return (float) Math.round((totalScore.floatValue() / numberOfScores) * 10) / 10;
 	}
 
-	private List<AnswerSet> getAnswers(Survey survey, ECFProfile profile, String orderBy, SqlPagination sqlPagination)
+	private List<AnswerSet> getAnswers(Survey survey, ECFProfile profileFilter, String orderBy, SqlPagination sqlPagination)
 			throws Exception {
 		ResultFilter resultFilter = new ResultFilter();
 
-		if (profile != null) {
-			resultFilter.setEcfProfileUid(profile.getProfileUid());
+		if (profileFilter != null) {
+			resultFilter.setAnsweredECFProfileUID(profileFilter.getProfileUid());
 		}
 
 		if (orderBy != null) {
@@ -1549,9 +1580,9 @@ public class ECFService extends BasicService {
 		return this.getAnswers(survey, null, null, sqlPagination);
 	}
 
-	private Integer getCount(Survey survey, ECFProfile profile) throws Exception {
+	private Integer getCount(Survey survey, ECFProfile profileFilter) throws Exception {
 		ResultFilter resultFilter = new ResultFilter();
-		resultFilter.setEcfProfileUid(profile.getProfileUid());
+		resultFilter.setAnsweredECFProfileUID(profileFilter.getProfileUid());
 		return this.answerService.getNumberOfAnswerSets(survey, resultFilter);
 	}
 

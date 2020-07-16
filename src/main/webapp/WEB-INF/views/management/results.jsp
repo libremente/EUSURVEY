@@ -505,6 +505,7 @@
 			$("#results-table").addClass('hidden');
 			$("#results-ecf").addClass("btn-primary");
 			$("#ecf-results").removeClass('hidden');
+			$("#ecf1-export-buttons").removeClass('hidden');
 			
 			// Strange?
 			$("#results-charts").addClass('hidden');
@@ -516,6 +517,7 @@
 			$("#results-table").removeClass('hidden');
 			$("#ecf-results").addClass('hidden');
 			$("#results-ecf").removeClass("btn-primary").addClass("btn-default");
+			$("#ecf1-export-buttons").addClass('hidden');
 		}
 		
 		function showECF2() {
@@ -564,19 +566,27 @@
 			
 			if (type == "Content")
 			{
+				$('#exportnt-format-ecf1').hide();
 				$('#exportnt-format-content').show();
 				$('#exportnt-format-statistics').hide();
 				$('#exportnt-format-statistics-quiz').hide();				
 			} else if (type == "Statistics")
 			{
+				$('#exportnt-format-ecf1').hide();
 				$('#exportnt-format-content').hide();
 				$('#exportnt-format-statistics').show();
 				$('#exportnt-format-statistics-quiz').hide();				
 			} else if (type == "StatisticsQuiz")
 			{
+				$('#exportnt-format-ecf1').hide();
 				$('#exportnt-format-content').hide();
 				$('#exportnt-format-statistics').hide();
 				$('#exportnt-format-statistics-quiz').show();				
+			} else if (type == "ECFGlobalResults") {
+				$('#exportnt-format-content').hide();
+				$('#exportnt-format-ecf1').show();
+				$('#exportnt-format-statistics').hide();
+				$('#exportnt-format-statistics-quiz').hide();	
 			}
 			
 			$('#export-name-type-dialog').find(".validation-error").hide();
@@ -610,6 +620,10 @@
 	        } else if (exportType === "StatisticsQuiz")
 	        {
 	        	format = $('#exportnt-format-statistics-quiz').val();
+	        }
+	        else if (exportType === "ECFGlobalResults")
+	        {
+	        	format = $('#exportnt-format-ecf1').val();
 	        }
 			
 	        startExport(name, format);
@@ -984,6 +998,15 @@
 							<a class="btn btn-default" onclick="showExportDialog('StatisticsQuiz')"><spring:message code="label.Export" /></a>
 						</span>		
 					</span>
+					
+					<span id="ecf1-export-buttons" class="hidden">
+						<span class="deactivatedexports">
+							<a class="btn btn-default disabled"><spring:message code="label.Export" /></a>	
+						</span>
+						<span class="activatedexports hideme">
+							<a class="btn btn-default" onclick="showExportDialog('ECFGlobalResults')"><spring:message code="label.Export" /></a>
+						</span>		
+					</span>
 				</div>	
 				
 				<div style="clear: both"></div>	
@@ -1216,6 +1239,9 @@
 							</select>
 							<select class="form-control" id="exportnt-format-statistics-quiz">
 								<option value="pdf">PDF</option>
+							</select>
+							<select class="form-control" id="exportnt-format-ecf1">
+								<option value="xls">XLS</option>
 							</select>
 						</div>			
 					</td>

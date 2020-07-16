@@ -148,7 +148,7 @@ public class ReportingService {
 			}
 			
 			//ECF
-			if (filter.getEcfProfileUid() != null && filter.getEcfProfileUid().length() > 0)
+			if (filter.getAnsweredECFProfileUID() != null && filter.getAnsweredECFProfileUID().length() > 0)
 			{
 				if (where.length() == 0)
 				{
@@ -158,7 +158,7 @@ public class ReportingService {
 				}
 				
 				where += " QECFPROFILEUID = :ecfProfileUid";
-				values.put("ecfProfileUid", filter.getEcfProfileUid().trim());
+				values.put("ecfProfileUid", filter.getAnsweredECFProfileUID().trim());
 			}
 					
 			
@@ -372,6 +372,9 @@ public class ReportingService {
 			
 			if (filter.getSortKey() != null) {
 				switch (ResultFilterSortKey.parse(filter.getSortKey())) {
+					case NAME:
+						where += " ORDER BY QUSER "+ filter.getSortOrder();
+						break;
 					case SCORE:
 						where += " ORDER BY QSCORE " + filter.getSortOrder();
 						break;

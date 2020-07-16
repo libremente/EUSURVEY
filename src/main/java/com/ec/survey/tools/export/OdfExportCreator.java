@@ -71,7 +71,7 @@ public class OdfExportCreator extends ExportCreator {
 	}
 
 	@Override
-	void ExportContent(boolean sync) throws Exception {
+	void exportContent(boolean sync) throws Exception {
 		ExportContent(null, sync);
 	}
 
@@ -899,9 +899,8 @@ public class OdfExportCreator extends ExportCreator {
 	}
 
 	@Override
-	void ExportStatisticsQuiz() throws Exception {
-	}
-
+	void exportStatisticsQuiz() throws Exception {}
+	
 	void ExportStatisticsODS() throws Exception {
 		SpreadsheetDocument spreadsheet = SpreadsheetDocument.newSpreadsheetDocument();
 
@@ -1285,8 +1284,9 @@ public class OdfExportCreator extends ExportCreator {
 	}
 
 	@Override
-	void ExportStatistics() throws Exception {
-		if (export.getFormat() == ExportFormat.ods) {
+	void exportStatistics() throws Exception {
+		if (export.getFormat() == ExportFormat.ods)
+		{
 			ExportStatisticsODS();
 			return;
 		}
@@ -1627,8 +1627,8 @@ public class OdfExportCreator extends ExportCreator {
 	}
 
 	@Override
-	void ExportAddressBook() throws Exception {
-
+	void exportAddressBook() throws Exception {
+		
 		User user = administrationService.getUser(userId);
 
 		SpreadsheetDocument spreadsheet = SpreadsheetDocument.newSpreadsheetDocument();
@@ -1695,7 +1695,7 @@ public class OdfExportCreator extends ExportCreator {
 	}
 
 	@Override
-	void ExportActivities() throws Exception {
+	void exportActivities() throws Exception {
 		SpreadsheetDocument spreadsheet = SpreadsheetDocument.newSpreadsheetDocument();
 		org.odftoolkit.simple.table.Table sheet = spreadsheet.getSheetByIndex(0);
 		sheet.setTableName("Contacts");
@@ -1818,8 +1818,7 @@ public class OdfExportCreator extends ExportCreator {
 	}
 
 	@Override
-	void ExportTokens() throws Exception {
-
+	void exportTokens() throws Exception {
 		ParticipationGroup participationGroup = participationService.get(export.getParticipationGroup());
 
 		SpreadsheetDocument spreadsheet = SpreadsheetDocument.newSpreadsheetDocument();
@@ -1979,8 +1978,26 @@ public class OdfExportCreator extends ExportCreator {
 			}
 
 		}
-
-		spreadsheet.save(outputStream);
+		
+		spreadsheet.save(outputStream);	
 	}
+
+	@Override
+	void exportECFGlobalResults() throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	void exportECFProfileResults() throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	void exportECFOrganizationalResults() throws Exception {
+		// TODO Auto-generated method stub
+		
+	}	
 
 }

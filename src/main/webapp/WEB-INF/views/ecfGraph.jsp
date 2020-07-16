@@ -1,8 +1,8 @@
-<div id="canvasContainer">
+<div>
 	<p>
 		<spring:message code="label.ECF.PleaseFindResults" />
 	</p>
-	<c:if test="${!print}">
+	<c:if test="${!print && !forpdf}">
 		<div class="form-group">
 			<label for="select-job-profiles"><spring:message code="label.ECF.ProfileFilter" /></label> <select
 				onchange="fetchECFResult()" class="form-control"

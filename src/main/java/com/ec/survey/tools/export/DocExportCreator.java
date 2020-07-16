@@ -43,15 +43,15 @@ public class DocExportCreator extends ExportCreator {
 	}
 
 	@Override
-	void ExportContent(boolean sync) throws MessageException {
-		throw new MessageException("Not implemented");
+	void exportContent(boolean sync) throws Exception {
+		throw new Exception("Not implemented");
 	}
 	
 	@Override
-	void ExportStatisticsQuiz() throws Exception {}
+	void exportStatisticsQuiz() throws Exception {}
 
 	@Override
-	void ExportStatistics() throws IOException {
+	void exportStatistics() throws IOException {
         document = new CustomXWPFDocument();
         DecimalFormat df = new DecimalFormat("#.##");
         
@@ -400,12 +400,21 @@ public class DocExportCreator extends ExportCreator {
 	}
 	
 	@Override
-	void ExportAddressBook() throws Exception {}
+	void exportAddressBook() throws Exception {}
 
 	@Override
-	void ExportActivities() throws Exception {}
+	void exportActivities() throws Exception {}
 	
 	@Override
-	void ExportTokens() throws Exception {}	
+	void exportTokens() throws Exception {}
+
+	@Override
+	void exportECFGlobalResults() throws Exception {}
+
+	@Override
+	void exportECFProfileResults() throws Exception {}
+
+	@Override
+	void exportECFOrganizationalResults() throws Exception {}	
 
 }

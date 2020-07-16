@@ -576,9 +576,9 @@ public class AnswerService extends BasicService {
 				values.put("uniqueCode", filter.getCaseId().trim());
 			}
 			
-			if (filter.getEcfProfileUid() != null && filter.getEcfProfileUid().length() > 0) {
+			if (filter.getAnsweredECFProfileUID() != null && filter.getAnsweredECFProfileUID().length() > 0) {
 				where.append(" AND ans.ECF_PROFILE_UID = :profileUid");
-				values.put("profileUid", filter.getEcfProfileUid());
+				values.put("profileUid", filter.getAnsweredECFProfileUID());
 			}
 
 			if (filter.getDraftId() != null && filter.getDraftId().length() > 0) {
@@ -742,6 +742,9 @@ public class AnswerService extends BasicService {
 			}
 			
 			switch (ResultFilterSortKey.parse(filter.getSortKey())) {
+			case NAME:
+				where.append(" ORDER BY ans.QUSER ").append(filter.getSortOrder());
+				break;
 			case SCORE:
 				where.append(" ORDER BY ans.SCORE ").append(filter.getSortOrder());
 				break;

@@ -462,12 +462,11 @@ public class ContributionController extends BasicController {
 	throws NotFoundException, InternalServerErrorException {
 		String answerSetIdOrNull = request.getParameter("answerSetId");
 		String profileUUIDOrNull = request.getParameter("profileUUID");
-		
 		if (answerSetIdOrNull == null) {
 			throw new NotFoundException();
 		}
 		AnswerSet answerSet = answerService.get(answerSetIdOrNull);
-
+		
 		ECFIndividualResult ecfResult;
 		try {
 			if (profileUUIDOrNull != null && !profileUUIDOrNull.isEmpty()) {
