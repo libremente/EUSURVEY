@@ -525,6 +525,7 @@
 			$("#results-table").addClass('hidden');
 			$("#results-ecf2").addClass("btn-primary");
 			$("#ecf-results2").removeClass('hidden');
+			$("#ecf2-export-buttons").removeClass('hidden');
 			
 			// Strange?
 			$("#results-charts").addClass('hidden');
@@ -536,6 +537,7 @@
 			$("#results-table").removeClass('hidden');
 			$("#ecf-results2").addClass('hidden');
 			$("#results-ecf2").removeClass("btn-primary").addClass("btn-default");
+			$("#ecf2-export-buttons").addClass('hidden');
 		}
 		
 		function showECF3() {
@@ -543,6 +545,7 @@
 			$("#results-table").addClass('hidden');
 			$("#results-ecf3").addClass("btn-primary");
 			$("#ecf-results3").removeClass('hidden');
+			$("#ecf3-export-buttons").removeClass('hidden');
 			
 			// Strange?
 			$("#results-charts").addClass('hidden');
@@ -554,6 +557,7 @@
 			$("#results-table").removeClass('hidden');
 			$("#ecf-results3").addClass('hidden');
 			$("#results-ecf3").removeClass("btn-primary").addClass("btn-default");
+			$("#ecf3-export-buttons").addClass('hidden');
 		}
 		
 		var exportType;
@@ -567,26 +571,48 @@
 			if (type == "Content")
 			{
 				$('#exportnt-format-ecf1').hide();
+				$('#exportnt-format-ecf2').hide();
+				$('#exportnt-format-ecf3').hide();
 				$('#exportnt-format-content').show();
 				$('#exportnt-format-statistics').hide();
 				$('#exportnt-format-statistics-quiz').hide();				
 			} else if (type == "Statistics")
 			{
 				$('#exportnt-format-ecf1').hide();
+				$('#exportnt-format-ecf2').hide();
+				$('#exportnt-format-ecf3').hide();
 				$('#exportnt-format-content').hide();
 				$('#exportnt-format-statistics').show();
 				$('#exportnt-format-statistics-quiz').hide();				
 			} else if (type == "StatisticsQuiz")
 			{
 				$('#exportnt-format-ecf1').hide();
+				$('#exportnt-format-ecf2').hide();
+				$('#exportnt-format-ecf3').hide();
 				$('#exportnt-format-content').hide();
 				$('#exportnt-format-statistics').hide();
 				$('#exportnt-format-statistics-quiz').show();				
 			} else if (type == "ECFGlobalResults") {
 				$('#exportnt-format-content').hide();
 				$('#exportnt-format-ecf1').show();
+				$('#exportnt-format-ecf2').hide();
+				$('#exportnt-format-ecf3').hide();
 				$('#exportnt-format-statistics').hide();
 				$('#exportnt-format-statistics-quiz').hide();	
+			} else if (type == "ECFProfileResults") {
+				$('#exportnt-format-ecf1').hide();
+				$('#exportnt-format-ecf2').show();
+				$('#exportnt-format-ecf3').hide();
+				$('#exportnt-format-content').hide();
+				$('#exportnt-format-statistics').hide();
+				$('#exportnt-format-statistics-quiz').hide();
+			} else if (type == "ECFOrganizationResults") {
+				$('#exportnt-format-ecf1').hide();
+				$('#exportnt-format-ecf2').hide();
+				$('#exportnt-format-ecf3').show();
+				$('#exportnt-format-content').hide();
+				$('#exportnt-format-statistics').hide();
+				$('#exportnt-format-statistics-quiz').hide();
 			}
 			
 			$('#export-name-type-dialog').find(".validation-error").hide();
@@ -624,6 +650,12 @@
 	        else if (exportType === "ECFGlobalResults")
 	        {
 	        	format = $('#exportnt-format-ecf1').val();
+	        } else if (exportType === "ECFProfileResults")
+	        {
+	        	format = $('#exportnt-format-ecf2').val();
+	        } else if (exportType === "ECFOrganizationResults")
+	        {
+	        	format = $('#exportnt-format-ecf3').val();
 	        }
 			
 	        startExport(name, format);
@@ -1007,6 +1039,26 @@
 							<a class="btn btn-default" onclick="showExportDialog('ECFGlobalResults')"><spring:message code="label.Export" /></a>
 						</span>		
 					</span>
+					
+					<span id="ecf2-export-buttons" class="hidden">
+						<span class="deactivatedexports">
+							<a class="btn btn-default disabled"><spring:message code="label.Export" /></a>	
+						</span>
+						<span class="activatedexports hideme">
+							<a class="btn btn-default" onclick="showExportDialog('ECFProfileResults')"><spring:message code="label.Export" /></a>
+						</span>		
+					</span>
+					
+					<span id="ecf3-export-buttons" class="hidden">
+						<span class="deactivatedexports">
+							<a class="btn btn-default disabled"><spring:message code="label.Export" /></a>	
+						</span>
+						<span class="activatedexports hideme">
+							<a class="btn btn-default" onclick="showExportDialog('ECFOrganizationResults')"><spring:message code="label.Export" /></a>
+						</span>		
+					</span>
+					
+					
 				</div>	
 				
 				<div style="clear: both"></div>	
@@ -1241,6 +1293,12 @@
 								<option value="pdf">PDF</option>
 							</select>
 							<select class="form-control" id="exportnt-format-ecf1">
+								<option value="xls">XLS</option>
+							</select>
+							<select class="form-control" id="exportnt-format-ecf2">
+								<option value="xls">XLS</option>
+							</select>
+							<select class="form-control" id="exportnt-format-ecf3">
 								<option value="xls">XLS</option>
 							</select>
 						</div>			

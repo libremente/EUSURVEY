@@ -3332,25 +3332,17 @@ public class ManagementController extends BasicController {
 		Survey survey = (filter != null) 
 				? surveyService.getSurvey(filter.getSurveyId(), true) 
 				: surveyService.getSurvey(shortname, false, true, false, false, null, true, false);
+				
+		filter.setCompareToECFProfileUID(profileOrNull);
 		this.sessionService.userIsResultReadAuthorized(survey, request);
 		
-		// ACTUAL CODE
 		try {
-			if (profileOrNull != null && !profileOrNull.isEmpty()) {
-				ECFProfile ecfProfileOrNull = this.ecfService.getECFProfileByUUID(profileOrNull);
-				if (ecfProfileOrNull == null) {
-					throw new NotFoundException();
-				} else {
-					return this.ecfService.getECFProfileResult(survey, ecfProfileOrNull);
-				}
-			} else {
-				return this.ecfService.getECFProfileResult(survey);
-			}
-
+			this.sessionService.setLastResultFilter(request, filter, sessionService.getCurrentUser(request).getId(), survey.getId());
+			return this.ecfService.getECFProfileResult(survey, filter);
 		} catch (NotFoundException e) {
 			throw e;
-		} catch (Exception e) {
-			throw new InternalServerErrorException(e);
+		} catch (Exception e1) {
+			throw new InternalServerErrorException(e1);
 		}
 	}
 	

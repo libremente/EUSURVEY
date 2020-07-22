@@ -108,8 +108,8 @@
 	
 	function oneScoreWithGapTH(score, gap) {
 		let oneTh = '';
-		let displayGap = $('#display-gap').is(":checked");
-		let displayScore = $('#display-score').is(":checked");
+		let displayGap = true;
+		let displayScore = true;
 		
 		let scoreClass = displayScore ? 'score' : 'score hidden';
 		let gapClass = displayGap ? 'gap ' : 'gap hidden ';
@@ -139,26 +139,6 @@
 				+ '</div></th>');
 		
 		return oneTh;
-	}
-	
-	function displayECFChart(ecfResult) {
-		
-	}
-	
-	function toggleDisplayScore() {
-		if ($('#display-score').is(":checked")) {
-			$(".score").removeClass("hidden");
-		} else {
-			$(".score").addClass("hidden");
-		}
-	}
-	
-	function toggleDisplayGap() {
-		if ($('#display-gap').is(":checked")) {
-			$(".gap").removeClass("hidden");
-		} else {
-			$(".gap").addClass("hidden");
-		}
 	}
 	
 	function nextResultPage() {

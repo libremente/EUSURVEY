@@ -186,7 +186,17 @@ public class ECFService extends BasicService {
 	}
 
 	public ECFProfileResult getECFProfileResult(Survey survey) throws Exception {
-		return this.getECFProfileResult(survey, null);
+		return this.getECFProfileResult(survey, (ECFProfile) null);
+	}
+	
+	public ECFProfileResult getECFProfileResult(Survey survey, ResultFilter resultFilter) throws Exception {
+		ECFProfile profileComparison = null;
+		if (resultFilter.getCompareToECFProfileUID() != null) {
+			profileComparison = this.getECFProfileByUUID(resultFilter.getCompareToECFProfileUID());
+			if (profileComparison == null) throw new NotFoundException();
+		}
+		
+		return this.getECFProfileResult(survey, profileComparison);
 	}
 
 	/**
