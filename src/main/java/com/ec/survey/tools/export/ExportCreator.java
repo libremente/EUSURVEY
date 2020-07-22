@@ -219,8 +219,8 @@ public abstract class ExportCreator implements Runnable {
 			case Statistics: initAnswers(true); exportStatistics(); break;
 			case StatisticsQuiz: initAnswers(true); exportStatisticsQuiz(); break;
 			case ECFGlobalResults: exportECFGlobalResults(); break;
-			case ECFProfileResults: break;
-			case ECFOrganizationResults: break;
+			case ECFProfileResults: exportECFProfileResults(); break;
+			case ECFOrganizationResults: exportECFOrganizationalResults(); break;
 			case AddressBook: exportAddressBook(); break;
 			case Activity: exportActivities(); break;
 			case Tokens: exportTokens(); break;

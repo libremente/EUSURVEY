@@ -22,23 +22,6 @@
 				<spring:message code="label.ECF.Results" />
 			</h2>
 			<div class="form-group">
-				<label for="select-job-profiles"><spring:message
-						code="label.ECF.DisplayOptions" /></label>
-				<div class="under">
-					<div class="checkbox-inline">
-						<input id="display-score" checked onchange="toggleDisplayScore()"
-							type="checkbox" />
-						<spring:message code="label.ECF.DisplayScores" />
-					</div>
-					<div class="checkbox-inline">
-						<input id="display-gap" checked onchange="toggleDisplayGap()"
-							type="checkbox" />
-						<spring:message code="label.ECF.DisplayGaps" />
-					</div>
-				</div>
-			</div>
-
-			<div class="form-group">
 				<label for="select-contributions"><spring:message
 						code="label.ECF.SelectContributions" /></label>
 				<table class="table table-styled table-striped table-bordered"
@@ -46,14 +29,12 @@
 					<thead>
 						<tr class="headerrow">
 							<th><spring:message code="label.ECF.Profile" /></th>
-							<th><spring:message code="label.ECF.NumberOfContributions" />
-							</th>
+							<th><spring:message code="label.ECF.NumberOfContributions" /></th>
 						</tr>
 					</thead>
 					<tbody>
 						<c:forEach var="profileResult"
 							items="${ecfSummaryResult.profileResults}" varStatus="loop">
-
 							<c:choose>
 								<c:when test="${profileResult.isSelected}">
 									<tr onclick="selectProfile('${profileResult.profileUid}');"

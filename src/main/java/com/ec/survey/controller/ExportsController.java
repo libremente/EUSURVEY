@@ -134,6 +134,22 @@ public class ExportsController extends BasicController {
 					export.setSurvey(survey);
 					break;
 				}
+				
+				case ECFProfileResults: {
+					ResultFilter lastResultFilter = sessionService.getLastResultFilter(request);
+					ResultFilter resultFilter = new ResultFilter();
+					resultFilter.setSurveyId(lastResultFilter.getSurveyId());
+					resultFilter.setSurveyShortname(lastResultFilter.getSurveyShortname());
+					resultFilter.setCompareToECFProfileUID(lastResultFilter.getCompareToECFProfileUID());
+					export.setResultFilter(resultFilter);
+					
+					Survey survey = form.getSurvey();
+					boolean active = (Boolean) request.getSession().getAttribute("results-source-active");
+					survey = surveyService.getSurvey(survey.getShortname(), !active, false, false, false, null, true,
+							false);
+					export.setSurvey(survey);
+					break;
+				}
 				default: {
 					boolean active = (Boolean) request.getSession().getAttribute("results-source-active");
 					Survey survey = form.getSurvey();
