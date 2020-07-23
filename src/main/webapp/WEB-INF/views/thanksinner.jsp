@@ -24,24 +24,6 @@
 			</c:otherwise>
 		</c:choose>
 	</c:if>
-	<c:if test="${ecfResults != null}">
-		<br />
-		<br />
-		<p>Here are your results:</p>
-		<div id="canvasContainer">
-			<table class="table table-striped table-bordered" id="ecfResultTable"
-				style="margin-bottom: 10px">
-				<tbody>
-					<tr class="headerrow">
-						<th>Competencies</th>
-						<th>Scores</th>
-						<th>Target job profile</th>
-						<th>Gap</th>
-					</tr>
-				</tbody>
-			</table>
-			<canvas id="ecfRespondentChart"></canvas>
-		</div>
 	<c:if test="${isECF}">
 		<div id="canvasContainer"> 
 			<%@ include file="ecfGraph.jsp" %>

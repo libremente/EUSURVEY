@@ -1423,8 +1423,6 @@ public class ManagementController extends BasicController {
 				if (!Objects.equals(uploadedSurvey.getEcasMode(), survey.getEcasMode())) {
 					survey.setEcasMode(uploadedSurvey.getEcasMode());
 				}
-
-				survey.setPassword(uploadedSurvey.getPassword());
 			}
 
 			if (uploadedSurvey.getValidatedPerPage() != survey.getValidatedPerPage()) {

@@ -38,9 +38,11 @@
 				</c:choose>
 				
 				<%@ include file="../runner/runnercontentinnerpdf.jsp" %>
-				<div id="canvasContainerLeft"> 	
-					<%@ include file="../ecfGraph.jsp" %>
-				</div>
+				<c:if test="${form.survey.isECF}">
+					<div id="canvasContainerLeft"> 	
+						<%@ include file="../ecfGraph.jsp" %>
+					</div>
+				</c:if>
 			</form:form>
 		
 		</div>

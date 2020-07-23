@@ -41,6 +41,9 @@ public class ECFProfileCompetencyResult implements Comparable {
 		this.competencyTargetScore = competencyTargetScore;
 	}
 
+	public Float getCompetencyAverageScore() {
+		return competencyAverageScore;
+	}
 	public void setCompetencyAverageScore(Float competencyAverageScore) {
 		this.competencyAverageScore = competencyAverageScore;
 	}

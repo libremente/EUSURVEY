@@ -214,9 +214,9 @@ public abstract class ExportCreator implements Runnable {
 	private void innerRunBasic(boolean sync, Export export) throws Exception
 	{
 		switch (export.getType()) {
-			case Content: /*initAnswers(false);*/ exportContent(sync); break;
-			case Statistics: initAnswers(true); exportStatistics(); break;
-			case StatisticsQuiz: initAnswers(true); exportStatisticsQuiz(); break;
+			case Content: exportContent(sync); break;
+			case Statistics: initAnswers(); exportStatistics(); break;
+			case StatisticsQuiz: initAnswers(); exportStatisticsQuiz(); break;
 			case ECFGlobalResults: exportECFGlobalResults(); break;
 			case ECFProfileResults: exportECFProfileResults(); break;
 			case ECFOrganizationResults: exportECFOrganizationalResults(); break;

@@ -235,6 +235,8 @@ public class XlsExportCreator extends ExportCreator {
 	
 	
 	public void exportContent(Publication publication, boolean sync) throws Exception {	
+		sheets = new ArrayList<>();
+
 		safeName = WorkbookUtil.createSafeSheetName("Content");
 		counter = 0;
 		fileCounter = 0;

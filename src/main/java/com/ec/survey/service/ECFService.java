@@ -1459,7 +1459,7 @@ public class ECFService extends BasicService {
 								newType = oldType.copy();
 
 								// SAVING TYPE
-								session.saveOrUpdate(newType);
+								session.persist(newType);
 								oldECFTypeToNew.put(oldType, newType);
 							} else {
 								newType = oldECFTypeToNew.get(oldType);
@@ -1469,7 +1469,7 @@ public class ECFService extends BasicService {
 							newType.addCluster(newCluster);
 
 							// SAVING CLUSTER
-							session.saveOrUpdate(newCluster);
+							session.persist(newCluster);
 							oldECFClusterToNew.put(oldCluster, newCluster);
 						} else {
 							newCluster = oldECFClusterToNew.get(oldCluster);
@@ -1478,7 +1478,7 @@ public class ECFService extends BasicService {
 						newCluster.addCompetency(newCompetency);
 
 						// SAVING COMPETENCY
-						session.saveOrUpdate(newCompetency);
+						session.persist(newCompetency);
 						oldECFCompetencyToNew.put(oldCompetency, newCompetency);
 					} else {
 						newCompetency = oldECFCompetencyToNew.get(oldCompetency);
@@ -1500,7 +1500,7 @@ public class ECFService extends BasicService {
 					ECFProfile newProfile = null;
 					if (!oldECFProfileToNew.containsKey(oldProfile)) {
 						newProfile = oldProfile.copy();
-						session.saveOrUpdate(newProfile);
+						session.persist(newProfile);
 						oldECFProfileToNew.put(oldProfile, newProfile);
 					} else {
 						newProfile = oldECFProfileToNew.get(oldProfile);
@@ -1531,13 +1531,13 @@ public class ECFService extends BasicService {
 			eid.setECFProfile(newScoreProfile);
 			ECFExpectedScore newScore = new ECFExpectedScore(eid, oldScore);
 
-			session.saveOrUpdate(newScore);
+			session.persist(newScore);
 
 			newScoreCompetency.addECFExpectedScore(newScore);
 			newScoreProfile.addECFExpectedScore(newScore);
 
-			session.saveOrUpdate(newScoreCompetency);
-			session.saveOrUpdate(newScoreProfile);
+			session.persist(newScoreCompetency);
+			session.persist(newScoreProfile);
 		}
 
 		return alreadyCopiedSurvey;
