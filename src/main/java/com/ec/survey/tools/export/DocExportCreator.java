@@ -43,8 +43,8 @@ public class DocExportCreator extends ExportCreator {
 	}
 
 	@Override
-	void exportContent(boolean sync) throws Exception {
-		throw new Exception("Not implemented");
+	void exportContent(boolean sync) throws MessageException {
+		throw new MessageException("Not implemented");
 	}
 	
 	@Override

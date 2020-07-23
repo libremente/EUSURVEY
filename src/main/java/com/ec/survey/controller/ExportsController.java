@@ -168,26 +168,7 @@ public class ExportsController extends BasicController {
 					form.setSurvey(survey);
 				}
 			}
-			
-			if (export.getType().equals(ExportType.AddressBook))
-			{
-				
-			} else if (export.getType().equals(ExportType.Activity))
-			{
-				
-			} else if (export.getType().equals(ExportType.Tokens))
-			{
-				
-			} else if (export.getType().equals(ExportType.Files))
-			{
-				
-			} else if (export.getType().equals(ExportType.Survey))
-			{
-						
-			} else {				
-							
-			}			
-		
+
 			exportService.prepareExport(form, export);
 			exportService.startExport(form, export, false, resources, locale, null, null, false);
 			sessionService.setCheckExport(request, "true");

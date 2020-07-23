@@ -656,8 +656,7 @@ public class RunnerController extends BasicController {
 				result.addObject("ecfProfiles", profiles);
 			}
 
-			if (survey.getIsOPC())
-			{
+			if (survey.getIsOPC()) {
 				result.addObject("opcredirection", survey.getFinalConfirmationLink(opcredirect, lang));
 			}
 

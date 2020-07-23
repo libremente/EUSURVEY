@@ -20,14 +20,13 @@ import java.io.IOException;
 import java.util.*;
 
 public class ApplicationListenerBean implements ApplicationListener<ContextRefreshedEvent> {
-
+	
 	private static final Logger logger = Logger.getLogger(ApplicationListenerBean.class);
 
 	@Override
 	public void onApplicationEvent(ContextRefreshedEvent event) {
 		if (event != null) {
-			logger.info("RECEIVED ContextRefreshedEvent " + event.getApplicationContext().getId());
-
+			
 			ApplicationContext applicationContext = event.getApplicationContext();
             
             //the event is thrown twice (one for each context), so we only count the last one

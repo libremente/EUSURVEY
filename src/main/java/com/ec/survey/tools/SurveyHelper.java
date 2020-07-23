@@ -3332,13 +3332,13 @@ public class SurveyHelper {
           		}
           	}
           	
-			  for (ScoringItem itemToDelete : deletedScoringItems) {
+          	for (ScoringItem itemToDelete : deletedScoringItems) {
           		((Question)element).getScoringItems().remove(itemToDelete);
           	}
           	
           	for (int i = 0; i < scoringitems.length; i++)
      		{
-				  ScoringItem item = getScoringItem(parameterMap, question, scoringitems[i], servletContext, log220);
+          		ScoringItem item = getScoringItem(parameterMap, question, scoringitems[i], servletContext, log220);
           		item.setPosition(i);
      		}
 		 }

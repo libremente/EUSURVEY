@@ -1386,9 +1386,9 @@ public class XlsExportCreator extends ExportCreator {
 						row = sheet.createRow(rowIndex++);
 					}
 				}
-        	}
-		} 
-        wb.write(outputStream);
+			}
+		}
+		wb.write(outputStream);
 	}
 
 	@Override

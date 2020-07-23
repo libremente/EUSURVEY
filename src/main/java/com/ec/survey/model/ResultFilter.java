@@ -548,8 +548,8 @@ public class ResultFilter implements java.io.Serializable {
 		if (generatedTo != null) return false;
 		if (updatedFrom != null) return false;
 		if (updatedTo != null) return false;
-		if (languages != null && languages.size() > 0) return false;
-		if (filterValues != null && filterValues.size() > 0) return false;
+		if (languages != null && !languages.isEmpty()) return false;
+		if (filterValues != null && !filterValues.isEmpty()) return false;
 		if (answeredECFProfileUID != null && !answeredECFProfileUID.isEmpty()) return false;
 		
 		return true;

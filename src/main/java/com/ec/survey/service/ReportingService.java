@@ -1895,7 +1895,8 @@ public class ReportingService {
 		
 		Query query=sessionReporting.createSQLQuery(sql);
 		query.setResultTransformer(AliasToEntityMapResultTransformer.INSTANCE);
-		List<Map<String,Object>> aliasToValueMapList = query.list();
+		@SuppressWarnings("unchecked")
+		List<Map<String,Object>> aliasToValueMapList=query.list();
 		
 		List<Object> result = new ArrayList<>();
 		

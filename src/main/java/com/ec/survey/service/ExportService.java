@@ -77,7 +77,9 @@ public class ExportService extends BasicService {
 
 	@Transactional
 	public boolean startExport(Form form, Export export, boolean immediate, MessageSource resources, Locale locale, String uid, String exportFilePath, boolean skipcheckworkerserver) {	
+		
 		try {
+			
 			User user = administrationService.getUser(export.getUserId());
 			logger.info("Starting export check settings skipcheckworkerserver " + skipcheckworkerserver +" useworkerserver " + useworkerserver +" isworkerserver " + isworkerserver);
 			
@@ -152,6 +154,11 @@ public class ExportService extends BasicService {
 				if (export.getEmail() != null)
 				{
 					markFinished(export);
+					
+					Calendar end = Calendar.getInstance();
+					end.setTime( new Date());
+					end.add(Calendar.MINUTE, 5);
+					
 					Export finishedExport = exportService.getExport(export.getId(), false);
 					if (!finishedExport.isFinished())
 					{
