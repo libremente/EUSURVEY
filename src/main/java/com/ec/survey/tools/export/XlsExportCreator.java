@@ -1409,7 +1409,6 @@ public class XlsExportCreator extends ExportCreator {
 	}
 	
 	private int initWorkbook(Sheet sheet, Export export) {
-
 		sheet.setColumnWidth(0, 5000);
 		sheet.setColumnWidth(1, 5000);
 		sheet.setColumnWidth(2, 5000);

@@ -1612,16 +1612,16 @@ public class Survey implements java.io.Serializable {
 	}
 
 	@Transient
-	public Map<Integer, Element> copyElements(Survey copy, SurveyService surveyService, boolean makeQuestionsLocked)
-			throws IntrusionException, ValidationException {
-		for (Element element : elements) {
-			Element c = element.copy(surveyService.getFileDir());
-			c.setLocked(makeQuestionsLocked);
-			copy.elements.add(c);
+	public Map<Integer, Element> copyElements(Survey surveyCopy, SurveyService surveyService,
+			boolean makeQuestionsLocked) throws IntrusionException, ValidationException {
+		for (Element element : this.elements) {
+			Element copiedElements = element.copy(surveyService.getFileDir());
+			copiedElements.setLocked(makeQuestionsLocked);
+			surveyCopy.elements.add(copiedElements);
 		}
 
 		Map<Integer, Element> elementsBySourceId = new HashMap<>();
-		for (Element newElement : copy.elements) {
+		for (Element newElement : surveyCopy.elements) {
 			elementsBySourceId.put(newElement.getSourceId(), newElement);
 			if (newElement instanceof ChoiceQuestion) {
 				for (PossibleAnswer answer : ((ChoiceQuestion) newElement).getPossibleAnswers()) {

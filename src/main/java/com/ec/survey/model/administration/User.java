@@ -37,7 +37,7 @@ public class User implements java.io.Serializable {
 	private String givenName;
 	private String surName;
 	private boolean validated = false;
-	private List<Role> roles;
+	private List<Role> roles = new ArrayList<>();
 	private Map<GlobalPrivilege, Integer> globalPrivileges;
 	private Map<LocalPrivilege, Integer> localPrivileges;
 	private boolean privilegesLoaded = false;

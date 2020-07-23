@@ -997,7 +997,10 @@ public class SurveyService extends BasicService {
 		int trustValueNbContributions = Integer.parseInt(settingsService.get(Setting.TrustValueNbContributions));
 		
 		//Rule 0: if the Form Manager is internal
-		if (!survey.getOwner().isExternal())
+		UserFilter userFilter = new UserFilter();
+		userFilter.setLogin(survey.getOwner().getLogin());
+		User owner = administrationService.getUser(userFilter);
+		if (!owner.isExternal())
 		{
 			score += trustValueCreatorInternal;
 		}

@@ -42,25 +42,8 @@ import com.ec.survey.tools.QuizHelper;
 import com.ec.survey.tools.SurveyHelper;
 import com.ec.survey.tools.Tools;
 import com.ec.survey.tools.WeakAuthenticationException;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.servlet.ModelAndView;
-import org.xhtmlrenderer.pdf.ITextRenderer;
 
-import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
 
 @Controller
 public class ContributionController extends BasicController {
@@ -516,8 +499,7 @@ public class ContributionController extends BasicController {
 					model.addObject("answerSet", answerSet.getId());
 					model.addObject("code", code);
 					model.addObject("isEcf", answerSet.getSurvey().getIsECF());
-					java.util.Date submittedDate = answerSet.getUpdateDate() != null ? answerSet.getUpdateDate()
-					: answerSet.getDate();
+					java.util.Date submittedDate = answerSet.getUpdateDate() != null ? answerSet.getUpdateDate() : answerSet.getDate();
 					model.addObject("submittedDate", ConversionTools.getFullString(submittedDate));
 					model.addObject("print", true);
 					model.addObject("serverprefix", serverPrefix);

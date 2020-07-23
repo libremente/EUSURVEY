@@ -95,7 +95,6 @@ public class SchemaService extends BasicService {
 		session.saveOrUpdate(status);
 	}
 
-
 	@Transactional
 	public void step93() {
 		Session session = sessionFactory.getCurrentSession();

@@ -123,7 +123,8 @@ public class PDFRenderer {
 		    dbf.setExpandEntityReferences(false);
 			DocumentBuilder builder = dbf.newDocumentBuilder();
 			builder.setEntityResolver(FSEntityResolver.instance());
-			Document doc = builder.parse(inputurl);			
+			Document doc = builder.parse(inputurl);
+			doc.getDocumentElement().normalize();
 			
 			MetaDataCreationListener mcl = new MetaDataCreationListener();
 			mcl.parseMetaTags( doc );

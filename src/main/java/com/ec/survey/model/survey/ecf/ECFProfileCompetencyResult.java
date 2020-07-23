@@ -79,7 +79,6 @@ public class ECFProfileCompetencyResult implements Comparable {
 				+ competencyMaxScore + ", competencyScoreGap=" + competencyScoreGap + ", order=" + order + "]";
 	}
 
-
 	@Override
 	public int compareTo(Object otherObject) {
 		if (otherObject instanceof ECFProfileCompetencyResult) {

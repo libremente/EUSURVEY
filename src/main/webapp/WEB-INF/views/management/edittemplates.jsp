@@ -220,7 +220,7 @@
 	</tr>		
 </script>
 
-<script type="text/html" id="quiz-template">	
+<script type="text/html" id="quiz-template">
 	<tr class="firstpropertyrow collapsiblerow quiz">
 		<td colspan='2' style="text-align: left; border-bottom: 0px;">
 			<div class="toolboxheader">

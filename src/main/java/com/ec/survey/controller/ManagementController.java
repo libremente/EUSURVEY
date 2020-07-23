@@ -87,7 +87,6 @@ public class ManagementController extends BasicController {
 	protected void initBinder(HttpServletRequest request, ServletRequestDataBinder binder) {
 		SimpleDateFormat dateFormat = new SimpleDateFormat(ConversionTools.DateFormat);
 		CustomDateEditor editor = new CustomDateEditor(dateFormat, true);
-		
 		binder.registerCustomEditor(Date.class, editor);
 
 		binder.registerCustomEditor(Language.class, "survey.language", new PropertyEditorSupport() {
@@ -1377,8 +1376,8 @@ public class ManagementController extends BasicController {
 			}
 		}
 
-		if (!survey.getIsOPC())
-			survey.setSecurity(uploadedSurvey.getSecurity());
+		if (!survey.getIsOPC()) 
+		survey.setSecurity(uploadedSurvey.getSecurity());
 		survey.setMultiPaging(uploadedSurvey.getMultiPaging());
 
 		survey.setConfirmationPageLink(uploadedSurvey.getConfirmationPageLink());
@@ -1423,6 +1422,8 @@ public class ManagementController extends BasicController {
 				if (!Objects.equals(uploadedSurvey.getEcasMode(), survey.getEcasMode())) {
 					survey.setEcasMode(uploadedSurvey.getEcasMode());
 				}
+
+				survey.setPassword(uploadedSurvey.getPassword());
 			}
 
 			if (uploadedSurvey.getValidatedPerPage() != survey.getValidatedPerPage()) {
@@ -2107,7 +2108,7 @@ public class ManagementController extends BasicController {
 			throws Exception {
 		Form form;
 		form = sessionService.getForm(request, shortname, false, false);
-		
+
 		User u = sessionService.getCurrentUser(request);
 		if (!u.getId().equals(form.getSurvey().getOwner().getId())
 				&& u.getGlobalPrivileges().get(GlobalPrivilege.FormManagement) < 2
@@ -2181,7 +2182,6 @@ public class ManagementController extends BasicController {
 	}
 
 	private void upload(HttpServletRequest request, HttpServletResponse response, boolean isImage) {
-
 		PrintWriter writer = null;
 		InputStream is = null;
 		FileOutputStream fos = null;
