@@ -83,7 +83,7 @@ function displayECFChart(result) {
 			        }
 				},
 			title: {
-				display: true,
+				display: false,
 			    text: chartTitle
 			},
 			maintainAspectRatio: true,
@@ -107,18 +107,19 @@ function displayECFChart(result) {
 			type: 'radar',
 			data: {
 				labels: competencies,
-				datasets: [{
-					label: 'Your results',
-					data: scores,
-					backgroundColor: 'rgba(255, 99, 132, 0.2)',
-					borderColor: 'rgba(255, 99, 132, 1)',
+				datasets: [
+				{
+					label: 'Target score ',
+					data: targetScores,
+					backgroundColor: 'rgba(0, 139, 219, 0.2)',
+					borderColor: 'rgba(0, 116, 184, 1)',
 					borderWidth: 1
 				},
 				{
-					label: 'Target results for profile ' + profileName,
-					data: targetScores,
-					backgroundColor: 'rgba(97, 197, 255, 0.2)',
-					borderColor: 'rgba(97, 197, 255, 1)',
+					label: 'Your score',
+					data: scores,
+					backgroundColor: 'rgba(204, 0, 44, 0.2)',
+					borderColor: 'rgba(179, 0, 39, 1)',
 					borderWidth: 1
 				}
 				]

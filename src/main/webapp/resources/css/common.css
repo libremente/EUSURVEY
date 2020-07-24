@@ -943,6 +943,11 @@ legend {
 	text-align: center;
 }
 
+.col-centered{
+    float: none !important;
+    margin: 0 auto;
+}
+
 .left { 
 	text-align: left;
 }
@@ -1998,7 +2003,10 @@ input[type="radio"][disabled], input[type="checkbox"][disabled], input[type="rad
 #canvasContainerLeft {
 	padding: 1em;
 	display: block;
-	max-width: 800px;
+	max-width: 850px;
+}
+
+#select-job-profiles-graph {
 }
 
 
