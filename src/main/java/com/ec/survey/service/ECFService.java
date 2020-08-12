@@ -69,39 +69,43 @@ public class ECFService extends BasicService {
 
 		Set<ECFProfile> profiles = this.getECFProfiles(survey);
 		Map<String, String> profileUidToName = new HashMap<>();
-		Map<String, Integer> profileToNumber = new HashMap<>();
+		Map<String, Integer> profileToNumberAnswers = new HashMap<>();
+		Map<String, Integer> profileUidToOrder = new HashMap<>();
 
 		for (ECFProfile profile : profiles) {
 			profileUidToName.put(profile.getProfileUid(), profile.getName());
-			profileToNumber.put(profile.getProfileUid(), 0);
+			profileToNumberAnswers.put(profile.getProfileUid(), 0);
+			profileUidToOrder.put(profile.getProfileUid(), profile.getOrderNumber());
 		}
 
 		for (AnswerSet answerSet : answerSets) {
 			String profileUid = this.getECFProfile(survey, answerSet).getProfileUid();
-			if (profileToNumber.containsKey(profileUid)) {
-				Integer previousNumber = profileToNumber.get(profileUid);
-				profileToNumber.put(profileUid, previousNumber + 1);
+			if (profileToNumberAnswers.containsKey(profileUid)) {
+				Integer previousNumberAnswers = profileToNumberAnswers.get(profileUid);
+				profileToNumberAnswers.put(profileUid, previousNumberAnswers + 1);
 			} else {
 				throw new ECFException("An answerset references a non existing profile : " + profileUid);
 			}
 		}
 
 		Integer totalContributions = 0;
-		for (String profileUid : profileToNumber.keySet()) {
-			ECFProfileSummaryResult ecfSummaryProfileResult = new ECFProfileSummaryResult();
+		for (String profileUid : profileToNumberAnswers.keySet()) {
+			ECFProfileSummaryResult ecfSummaryProfileResult = new ECFProfileSummaryResult(profileUidToOrder.get(profileUid));
 			ecfSummaryProfileResult.setProfileName(profileUidToName.get(profileUid));
-			ecfSummaryProfileResult.setNumberOfContributions(profileToNumber.get(profileUid));
+			ecfSummaryProfileResult.setNumberOfContributions(profileToNumberAnswers.get(profileUid));
 			ecfSummaryProfileResult.setProfileUid(profileUid);
 			ecfSummaryResult.addProfileResult(ecfSummaryProfileResult);
 
 			totalContributions = totalContributions + ecfSummaryProfileResult.getNumberOfContributions();
 		}
 
-		ECFProfileSummaryResult ecfSummaryProfileResult = new ECFProfileSummaryResult();
+		ECFProfileSummaryResult ecfSummaryProfileResult = new ECFProfileSummaryResult(Integer.MAX_VALUE);
 		ecfSummaryProfileResult.setProfileName("All job profile");
 		ecfSummaryProfileResult.setNumberOfContributions(totalContributions);
 		ecfSummaryProfileResult.setIsSelected(true);
 		ecfSummaryResult.addProfileResult(ecfSummaryProfileResult);
+		
+		ecfSummaryResult.setProfileResults(ecfSummaryResult.getProfileResults().stream().sorted().collect(Collectors.toList()));
 
 		return ecfSummaryResult;
 	}
@@ -810,6 +814,18 @@ public class ECFService extends BasicService {
 		profileToCompetencyToScore.put("Neutral profile", this.defaultNeutralProfile());
 		return profileToCompetencyToScore;
 	}
+	
+	public Map<String, Integer> defaultProfileNameToOrder() {
+		Map<String, Integer> profileToOrder = new HashMap<>();
+		profileToOrder.put("Procurement support officer", 0);
+		profileToOrder.put("Standalone public buyer", 1);
+		profileToOrder.put("Public procurement specialist", 2);
+		profileToOrder.put("Category specialist", 3);
+		profileToOrder.put("Contract manager", 4);
+		profileToOrder.put("Department manager", 5);
+		profileToOrder.put("Neutral profile", 6);
+		return profileToOrder;
+	}
 
 	public Map<Integer, String> defaultQuestionNumberToAnswerText() {
 		Map<Integer, String> questionNumberToAnswerText = new HashMap<>();
@@ -1304,14 +1320,14 @@ public class ECFService extends BasicService {
 	 */
 	@Transactional
 	public Map<ECFProfile, Map<String, Integer>> createECFProfileToCompetencyNameToScore(
-			Map<String, Map<String, Integer>> profileNameToCompetencyToScore) {
+			Map<String, Map<String, Integer>> profileNameToCompetencyToScore, Map<String, Integer> profileNameToOrder) {
 		Session session = sessionFactory.getCurrentSession();
 
 		Map<ECFProfile, Map<String, Integer>> profileToCompetencyToScore = new HashMap<>();
 
 		for (String profileName : profileNameToCompetencyToScore.keySet()) {
 			ECFProfile ecfProfile = new ECFProfile(UUID.randomUUID().toString(), profileName,
-					profileName + " description");
+					profileName + " description", profileNameToOrder.get(profileName));
 			session.saveOrUpdate(ecfProfile);
 
 			Map<String, Integer> competencyNameToScore = profileNameToCompetencyToScore.get(profileName);

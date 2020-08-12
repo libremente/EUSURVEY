@@ -2,7 +2,7 @@ package com.ec.survey.model.survey.ecf;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class ECFProfileSummaryResult {
+public class ECFProfileSummaryResult implements Comparable<ECFProfileSummaryResult>{
 
 	@JsonProperty("profileUid")
 	private String profileUid;
@@ -15,6 +15,13 @@ public class ECFProfileSummaryResult {
 	
 	@JsonProperty("isSelected")
 	private Boolean isSelected;
+	
+	private Integer orderNumber;
+	
+	public ECFProfileSummaryResult(Integer orderNumber) {
+		super();
+		this.orderNumber = orderNumber;
+	}
 
 	public String getProfileUid() {
 		return profileUid;
@@ -47,12 +54,25 @@ public class ECFProfileSummaryResult {
 	public void setIsSelected(Boolean isSelected) {
 		this.isSelected = isSelected;
 	}
+	
+	public Integer getOrderNumber() {
+		return orderNumber;
+	}
+
+	public void setOrderNumber(Integer orderNumber) {
+		this.orderNumber = orderNumber;
+	}
 
 	@Override
 	public String toString() {
 		return "ECFProfileSummaryResult [profileUid=" + profileUid + ", profileName=" + profileName
-				+ ", numberOfContributions=" + numberOfContributions + ", isSelected=" + isSelected + "]";
+				+ ", numberOfContributions=" + numberOfContributions + ", isSelected=" + isSelected + ", orderNumber="
+				+ orderNumber + "]";
 	}
-
-
+	
+	@Override
+	public int compareTo(ECFProfileSummaryResult otherObject) {
+		return this.getOrderNumber().compareTo(otherObject.getOrderNumber());
+	}
+	
 }

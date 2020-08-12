@@ -212,11 +212,15 @@
 			contextpath = contextpath.slice(0,-1);
 		}
 		
-		let profileUUID = $( "#select-job-profiles2" ).val();
+		let profileComparisonUUID = $( "#select-job-profiles2" ).val();
+		let profileComparisonUUIDParam = "";
+		if (profileComparisonUUID && profileComparisonUUID != "") {
+			profileComparisonUUIDParam = "?profile=" + profileComparisonUUID;
+		}
 			$.ajax({
 				type:'GET',
 				url: contextpath + "/" + surveyShortname + "/management/ecfProfileAssessmentResultsJSON"
-				+"?profile=" + profileUUID,
+				+profileComparisonUUIDParam,
 				cache: false,
 				success: function(profileAssessmentResult) {
 					if (profileAssessmentResult == null) {

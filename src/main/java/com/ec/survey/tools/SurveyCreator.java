@@ -8,13 +8,13 @@ import com.ec.survey.service.FileService;
 import com.ec.survey.service.SurveyService;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.ServletContext;
 
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SurveyCreator {
 
@@ -62,7 +62,7 @@ public class SurveyCreator {
 
 		// generating one answer per profile
 		int answerPosition = 0;
-		for (ECFProfile ecfProfile : profiles) {
+		for (ECFProfile ecfProfile : profiles.stream().sorted().collect(Collectors.toList())) {
 			PossibleAnswer possibleAnswer = new PossibleAnswer();
 			possibleAnswer.setEcfProfile(ecfProfile);
 			possibleAnswer.setUniqueId(UUID.randomUUID().toString());

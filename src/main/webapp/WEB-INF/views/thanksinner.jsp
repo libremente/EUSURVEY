@@ -1,15 +1,20 @@
 <%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
 <%@ taglib prefix="esapi" uri="http://www.owasp.org/index.php/Category:OWASP_Enterprise_Security_API" %>
-<div style="text-align: center; margin-top: 100px;" id="divThanksInner" name="${uniqueCode}">
-
 	<c:choose>
+		<c:when test="${form.survey.isECF}">
+			<div style="text-align: center; margin-top: 20px;" id="divThanksInner" name="${uniqueCode}">
+			<!--  no text -->
+		</c:when>
 		<c:when test="${text != null}">
+			<div style="text-align: center; margin-top: 100px;" id="divThanksInner" name="${uniqueCode}">
 			${text}
 		</c:when>
 		<c:when test="${runnermode == true}">
+			<div style="text-align: center; margin-top: 100px;" id="divThanksInner" name="${uniqueCode}">
 			${form.getMessage("label.Thanks")}
 		</c:when>
 		<c:otherwise>
+			<div style="text-align: center; margin-top: 100px;" id="divThanksInner" name="${uniqueCode}">
 			<spring:message code="label.Thanks" />
 		</c:otherwise>
 	</c:choose>	

@@ -30,7 +30,7 @@ import org.hibernate.annotations.FetchMode;
 @Table(name = "ECF_PROFILE")
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
-public class ECFProfile implements Serializable {
+public class ECFProfile implements Serializable, Comparable<ECFProfile> {
 
 	/**
 	 * 
@@ -41,6 +41,7 @@ public class ECFProfile implements Serializable {
 	private String description;
 	private String name;
 	private List<ECFExpectedScore> expectedScores = new ArrayList<>();
+	private Integer orderNumber;
 
 	protected static final Logger logger = Logger.getLogger(ECFProfile.class);
 
@@ -48,10 +49,11 @@ public class ECFProfile implements Serializable {
 
 	}
 
-	public ECFProfile(String profileUid, String name, String description) {
-		this.setProfileUid(profileUid);
-		this.setDescription(description);
-		this.setName(name);
+	public ECFProfile(String profileUid, String name, String description, Integer order) {
+		this.profileUid  = profileUid;
+		this.description = description;
+		this.name = name;
+		this.orderNumber = order;
 	}
 
 	@Id
@@ -110,6 +112,7 @@ public class ECFProfile implements Serializable {
 		this.expectedScores = newScores;
 	}
 	
+	
 	public ECFProfile replaceScore(ECFCompetency previousScoreId, ECFExpectedScore copiedScore) {
 		this.setECFExpectedScores(this.expectedScores.stream().map(expectedScore -> {
 			if (expectedScore.getECFExpectedScoreToProfileEid().getECFCompetency().equals(previousScoreId)) {
@@ -120,10 +123,17 @@ public class ECFProfile implements Serializable {
 		}).collect(Collectors.toList()));
 		return this;
 	}
+	
+	public Integer getOrderNumber() {
+		return orderNumber;
+	}
+	public void setOrderNumber(Integer orderNumber) {
+		this.orderNumber = orderNumber;
+	}
 
 	public ECFProfile copy() {
 		ECFProfile profileCopy = new ECFProfile(UUID.randomUUID().toString(),
-				this.getName(), this.getDescription());
+				this.getName(), this.getDescription(), this.getOrderNumber());
 		return profileCopy;
 	}
 
@@ -134,6 +144,7 @@ public class ECFProfile implements Serializable {
 		result = prime * result + ((description == null) ? 0 : description.hashCode());
 		result = prime * result + id;
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + ((orderNumber == null) ? 0 : orderNumber.hashCode());
 		result = prime * result + ((profileUid == null) ? 0 : profileUid.hashCode());
 		return result;
 	}
@@ -159,6 +170,11 @@ public class ECFProfile implements Serializable {
 				return false;
 		} else if (!name.equals(other.name))
 			return false;
+		if (orderNumber == null) {
+			if (other.orderNumber != null)
+				return false;
+		} else if (!orderNumber.equals(other.orderNumber))
+			return false;
 		if (profileUid == null) {
 			if (other.profileUid != null)
 				return false;
@@ -166,5 +182,9 @@ public class ECFProfile implements Serializable {
 			return false;
 		return true;
 	}
-
+	
+	@Override
+	public int compareTo(ECFProfile otherObject) {
+		return this.getOrderNumber().compareTo(otherObject.getOrderNumber());
+	}
 }

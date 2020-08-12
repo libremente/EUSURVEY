@@ -3,10 +3,9 @@ package com.ec.survey.model.survey.ecf;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class ECFGlobalCompetencyResult implements Comparable {
+public class ECFGlobalCompetencyResult implements Comparable<ECFGlobalCompetencyResult> {
 
 	@JsonProperty("name")
 	private String competencyName;
@@ -92,13 +91,8 @@ public class ECFGlobalCompetencyResult implements Comparable {
 	}
 
 	@Override
-	public int compareTo(Object otherObject) {
-		if (otherObject instanceof ECFGlobalCompetencyResult) {
-			ECFGlobalCompetencyResult otherResult = (ECFGlobalCompetencyResult) otherObject;
-			return this.getOrder().compareTo(otherResult.getOrder());
-		} else {
-			return 0;
-		}
+	public int compareTo(ECFGlobalCompetencyResult otherObject) {
+		return this.getOrder().compareTo(otherObject.getOrder());
 	}
 
 }

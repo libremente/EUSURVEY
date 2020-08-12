@@ -41,6 +41,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/runner")
@@ -653,7 +654,7 @@ public class RunnerController extends BasicController {
 			if (survey.getIsECF()) {
 				result.addObject("isECF", true);
 				Set<ECFProfile> profiles = this.ecfService.getECFProfiles(survey);
-				result.addObject("ecfProfiles", profiles);
+				result.addObject("ecfProfiles", profiles.stream().sorted().collect(Collectors.toList()));
 			}
 
 			if (survey.getIsOPC()) {
@@ -1998,7 +1999,7 @@ public class RunnerController extends BasicController {
 			if (survey.getIsECF()) {
 				result.addObject("isECF", true);
 				Set<ECFProfile> profiles = this.ecfService.getECFProfiles(survey);
-				result.addObject("ecfProfiles", profiles);
+				result.addObject("ecfProfiles", profiles.stream().sorted().collect(Collectors.toList()));
 				// compute results
 				result.addObject("ecfResults", "example");
 				result.addObject("contextpath", contextpath);

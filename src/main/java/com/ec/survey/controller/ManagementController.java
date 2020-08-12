@@ -55,11 +55,12 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import com.ec.survey.model.survey.ecf.ECFIndividualResult;
 import com.ec.survey.model.survey.ecf.ECFProfileResult;
 import com.ec.survey.model.survey.ecf.ECFGlobalResult;
 import com.ec.survey.model.survey.ecf.ECFOrganizationalResult;
-import com.ec.survey.model.survey.ecf.ECFProfileResult;
 import com.ec.survey.model.survey.ecf.ECFSummaryResult;
 
 @Controller
@@ -2944,9 +2945,10 @@ public class ManagementController extends BasicController {
 		}
 		
 		if (survey.getIsECF()) {
+			filter.setVisibleQuestions(filter.getExportedQuestions());
 			SqlPagination sqlPagination = new SqlPagination(1, 10);
 			Set<ECFProfile> ecfProfiles = this.ecfService.getECFProfiles(survey);
-			result.addObject("ecfProfiles", ecfProfiles);
+			result.addObject("ecfProfiles", ecfProfiles.stream().sorted().collect(Collectors.toList()));
 			
 			ECFGlobalResult ecfGlobalResult = this.ecfService.getECFGlobalResult(survey, sqlPagination);
 			ECFSummaryResult ecfSummaryResult = this.ecfService.getECFSummaryResult(survey);

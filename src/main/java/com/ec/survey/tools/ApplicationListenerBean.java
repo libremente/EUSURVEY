@@ -643,6 +643,13 @@ public class ApplicationListenerBean implements ApplicationListener<ContextRefre
 			schemaService.step95();
 			status = schemaService.getStatus();
 		}
+		
+		if (status.getDbversion() < 96)
+		{
+			logger.info("starting upgrade step 96");
+			schemaService.step96();
+			status = schemaService.getStatus();
+		} 
 	}
 
 	public static Survey createSurvey(int answerCount, User user, Language objLang, SurveyService surveyService,

@@ -644,9 +644,5 @@
 		</div>
 	</c:if>
 	
-	<div id="canvasContainerLeft"> 
-		<%@ include file="../ecfGraph.jsp" %>
-	</div>
-	
 </body>
 </html>

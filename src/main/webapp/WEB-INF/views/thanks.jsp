@@ -16,6 +16,7 @@
 		});			
 	</script>
 	
+	
 	<c:if test='${form.survey.skin != null && form.survey.skin.name.equals("New Official EC Skin")}'>
 		<link href="${contextpath}/resources/css/ecnew.css" rel="stylesheet" type="text/css"></link>
 	</c:if>
@@ -39,10 +40,21 @@
 			</c:otherwise>
 		</c:choose>
 	
-		<div class="fullpage">
-			<%@ include file="thanksinner.jsp" %>
-			<%@ include file="generic-messages.jsp" %>
-		</div>
+		<c:choose>
+			<c:when test="${form.survey.isECF}">
+				<div class="fullpagesmaller">
+					<%@ include file="thanksinner.jsp" %>
+					<%@ include file="generic-messages.jsp" %>
+				</div>
+			</c:when>
+			<c:otherwise>
+				<div class="fullpage">
+					<%@ include file="thanksinner.jsp" %>
+					<%@ include file="generic-messages.jsp" %>
+				</div>
+			</c:otherwise>
+		</c:choose>
+		
 	</div>
 	
 	<c:choose>

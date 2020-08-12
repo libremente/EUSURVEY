@@ -33,7 +33,7 @@ import org.hibernate.annotations.FetchMode;
 @Table(name = "ECF_COMPETENCY")
 @Cacheable
 @Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
-public class ECFCompetency implements Serializable {
+public class ECFCompetency implements Serializable, Comparable<ECFCompetency>{
 
 	/**
 	 * 
@@ -219,6 +219,11 @@ public class ECFCompetency implements Serializable {
 		} else if (!name.equals(other.name))
 			return false;
 		return true;
+	}
+	
+	@Override
+	public int compareTo(ECFCompetency otherObject) {
+		return this.getOrderNumber().compareTo(otherObject.getOrderNumber());
 	}
 
 }

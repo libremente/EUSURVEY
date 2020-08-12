@@ -618,6 +618,14 @@ select {
  	padding-top: 90px; 
 }
 
+.fullpagesmaller {
+	padding-left: 20px;
+	padding-right: 20px;
+	text-align: left;
+	padding-bottom: 50px;
+ 	padding-top: 3em; 
+}
+
 .fullpageform {
 	padding-left: 20px;
 	padding-right: 20px;

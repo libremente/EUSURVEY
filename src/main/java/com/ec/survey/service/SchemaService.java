@@ -5,6 +5,7 @@ import com.ec.survey.model.administration.ComplexityParameters;
 import com.ec.survey.model.administration.GlobalPrivilege;
 import com.ec.survey.model.administration.Role;
 import com.ec.survey.model.administration.User;
+import com.ec.survey.model.survey.PossibleAnswer;
 import com.ec.survey.model.survey.Survey;
 import com.ec.survey.tools.DomainUpdater;
 import com.ec.survey.tools.SkinCreator;
@@ -44,6 +45,40 @@ public class SchemaService extends BasicService {
 	@Resource(name = "domainWorker")
 	private DomainUpdater domaintWorker;
 	
+	
+	@Transactional 
+	public void step96() {
+		try {
+			Session session = sessionFactory.getCurrentSession();
+			Query query = session.createQuery("FROM ECFProfile E where E.orderNumber is null and E.name is not null");
+			@SuppressWarnings("unchecked")
+			List<ECFProfile> ecfProfiles = query.list();
+			
+			Map<String, Integer> defaultOrder = ecfService.defaultProfileNameToOrder();
+			for (ECFProfile ecfProfile: ecfProfiles) {
+				String profileName = ecfProfile.getName();
+				ecfProfile.setOrderNumber(defaultOrder.get(profileName));
+				session.saveOrUpdate(ecfProfile);
+			}
+			
+			query = session.createQuery("FROM PossibleAnswer A where A.ecfProfile is not null");
+			@SuppressWarnings("unchecked")
+			List<PossibleAnswer> possibleAnswers = query.list();
+
+			for (PossibleAnswer possibleAnswer : possibleAnswers) {
+				String profileName = possibleAnswer.getEcfProfile().getName();
+				possibleAnswer.setPosition(defaultOrder.get(profileName));
+				session.saveOrUpdate(possibleAnswer);
+			}
+
+			Status status = getStatus();
+			status.setDbversion(96);
+			session.saveOrUpdate(status);
+			
+		} catch (Exception e) {
+			logger.error(e.getMessage(),e);
+		}
+	}
 	@Transactional
 	public void step95() {
 		try {
@@ -63,7 +98,7 @@ public class SchemaService extends BasicService {
 			
 			Map<String, ECFType> clusterNameToType = ecfService.createClusterNameToType(ecfService.defaultClusterToType());
 			Map<String, ECFCluster> competencyNameToCluster = ecfService.createCompetencyNameToCluster(clusterNameToType, ecfService.defaultCompetencyToCluster());
-			Map<ECFProfile, Map<String, Integer>> profileToCompetencyToScore = ecfService.createECFProfileToCompetencyNameToScore(ecfService.defaultProfileNameToCompetencyName());
+			Map<ECFProfile, Map<String, Integer>> profileToCompetencyToScore = ecfService.createECFProfileToCompetencyNameToScore(ecfService.defaultProfileNameToCompetencyName(), ecfService.defaultCompetenciesOrder());
 			Set<ECFCompetency> ecfCompetencies = ecfService.createECFCompetencies(profileToCompetencyToScore, competencyNameToCluster, ecfService.defaultCompetenciesOrder());
 			Set<ECFProfile> ecfProfiles = profileToCompetencyToScore.keySet();
 			
